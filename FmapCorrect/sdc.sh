@@ -18,10 +18,15 @@ GRAPPAAccel=1
 dwelltime=$(echo "($echoSpacing/$GRAPPAAccel)/1000" | bc -l) # 0.000XXX sec
 
 fmap_unwarp_field=$out/sdc/unwarp/EF_UD_warp.nii.gz
+
+# initially had dicoms, but can also support nifti instead
+ppd_args=(-magdir $dicom_mag -phasedir $dicom_phasediff  -mrpatt '*IMA')
+test -f $dicom_mag && ppd_args=(-mag $dicom_mag -phase $dicom_phasediff -method gre.nii.gz )
+
 preprocessDistortion \
 	 -savedir $out/sdc \
-	 -magdir $dicom_mag -phasedir $dicom_phasediff \
-	 -fm_cfg prisma_clz -mrpatt '*IMA'
+	 ${ppd_args[@]} \
+	 -fm_cfg $PWD/largefov_gre.fmcfg
 
 # copy of func registration target
 fslmaths $epi_brain   $out/sdc/unwarp/EF_D_mc_target	
