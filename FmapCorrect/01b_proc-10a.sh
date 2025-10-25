@@ -79,3 +79,7 @@ for sub in sub-{1,2}; do
       --interp=spline 
   done
 done
+
+./angle_at_max.py -i wf/human-largefov/sub-2/epi_undistorted_masked.nii.gz -m wf/human-largefov/sub-2/mean_epi_brain.nii.gz -o wf/human-largefov/sub-2/angles_at_max.nii.gz
+
+./angle_at_max.py -i wf/human-largefov/sub-1/epi_undistorted_masked.nii.gz -m wf/human-largefov/sub-1/mean_epi_brain.nii.gz -o wf/human-largefov/sub-1/angles_at_max.nii.gz
