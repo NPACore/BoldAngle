@@ -53,6 +53,14 @@ glasser_node_smry <- by_roi |>
            ) |>
  arrange(-r_med_change)
 
+glasser_node_smry |>
+    mutate(across(where(is.numeric), ~round(.,3))) |>
+    rename_with(\(x) gsub('_change','Δ',x))|>
+    head(n=10) |>
+    knitr::kable()
+
+## plotting
+
 # match glasser ggset atlas names:
 # Left_* to lh_L_*, Right_* to rh_R_*
 change_glasser_pdata <- glasser_node_smry |>
@@ -65,18 +73,20 @@ p_delta_r <-
  aes(fill=r_med_change) +
  ggseg::geom_brain(atlas=ggsegGlasser::glasser) +
  scale_fill_gradient(low="firebrick",high="yellow") +
- labs(fill=parse("⍴[Max] -  ⍴[Min] Median\nacross ∡\nf.ea ROI"))
+ labs(fill="Max-Min\nMedian ⍴\nacross ∡\nf.ea ROI")
+ #labs(fill=expression("↾"["∈∡"]*rho["ROI"] - rho["ROI"]))
 
 p_max <-
  ggplot(change_glasser_pdata) +
  theme_void() +
  aes(fill=node_max_med) +
- ggseg::geom_brain(atlas=ggsegGlasser::glasser) #position = ggseg::position_brain(hemi ~ side))
+ ggseg::geom_brain(atlas=ggsegGlasser::glasser) + #position = ggseg::position_brain(hemi ~ side))
+ labs(fill="∡ of max\nmed ⍴")
 
-cowplot::plot_grid(p_delta_r, p_max, nrow=2, labels="Per ROI Median ROI-ROI correlations by Angle")
+p <- cowplot::plot_grid(p_delta_r, p_max, nrow=2, labels="Per Glasser ROI Median ROI-ROI Correlations by Angle")
+ggsave(p, file="glasser_roiroi_medmax.png")
+
 ##  HPC
- 
-
 all_cor_hpc <- 
     Sys.glob(paste0(xcpd_dir,'sub-*/func/sub-*_task-*seg-HCP_stat-pearsoncorrelation_relmat.tsv')) |>
     long_r()
