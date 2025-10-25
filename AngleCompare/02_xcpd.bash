@@ -16,12 +16,12 @@ export FS_LICENSE=$PWD/fs_license.txt TEMPLATEFLOW_HOME=$HOME/.templateflow
 
 [[ "${USEBANDPASS:-}" == "no" ]] && bandpass_yesno="--disable-bandpass-filter" || bandpass_yesno=""
 
-for f in ../Data/preproc/fmriprep-$PREPVER/sub-cm20230803/func/; do
+for f in ../Data/preproc/fmriprep-$PREPVER/sub-*/func/; do
   ! [[ $f =~ (sub-[^-/]+)[/_] ]] && echo "file does not have subj: '$f'" && continue
   subj=${BASH_REMATCH[1]} 
   #[[ $task =~ anglechange ]] && echo "not running on $task, explicit skip" && continue
   example_output=$(find "$xcpddir/$subj"/func/ -iname "*pearsoncorrelation_relmat.tsv" -print -quit || :)
-  #[ -n "$example_output" ] && [ -r "$example_output" ] && echo "already ran on $example_output; skipping" && continue
+  [ -n "$example_output" ] && [ -r "$example_output" ] && echo "already ran on $example_output; skipping" && continue
   pgrep -af "podman .*xcp_d.*$subj" && echo "# already running $subj" && continue
   echo "# $(date) $subj"
 
