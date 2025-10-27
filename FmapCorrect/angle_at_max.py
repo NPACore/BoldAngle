@@ -12,7 +12,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("-i", "--input", type=str, required=True, help="Path to epi file.")
 parser.add_argument("-m", "--mask", type=str, required=True, help="Path to mask file.")
 parser.add_argument(
-    "-o", "--output", type=str, required=True, help="Path to save file."
+    "-o", "--output", type=str, required=False, help="Path to save file."
 )
 parser.add_argument(
     "-n",
@@ -51,16 +51,19 @@ else:
     )
 mx = np.argmax(ep.dataobj / sd, axis=3)
 
-an = np.loadtxt(args.labelfile, dtype=float)
-angle_3d = an[mx] * ep_brain
+if args.output:
+    an = np.loadtxt(args.labelfile, dtype=float)
+    angle_3d = an[mx] * ep_brain
 
-out = nib.Nifti1Image(angle_3d, ep.affine, ep.header)
-nib.save(out, args.output)
+    out = nib.Nifti1Image(angle_3d, ep.affine, ep.header)
+    nib.save(out, args.output)
 
-# maintain provenance
-notes = f'AFNI_NIFTI_TYPE_WARN=NO 3dNotes -h "{" ".join(sys.argv)}" "{args.output}"'
-os.system(notes)
+    # maintain provenance
+    notes = f'AFNI_NIFTI_TYPE_WARN=NO 3dNotes -h "{" ".join(sys.argv)}" "{args.output}"'
+    os.system(notes)
 
 if args.normed_out:
-    vis = ep.dataobj * sd
+    vis = ep.dataobj / sd
     nib.save(nib.Nifti1Image(vis, ep.affine, ep.header), args.normed_out)
+    notes = f'AFNI_NIFTI_TYPE_WARN=NO 3dNotes -h "{" ".join(sys.argv)}" "{args.normed_out}"'
+    os.system(notes)
