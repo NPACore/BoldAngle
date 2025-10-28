@@ -72,12 +72,13 @@ stopifnot(all(alltsnr[,,,subj1_idx[2]] == tsnr_3ds[[subj1_idx[2]]]))
 anglemax3d <- apply(alltsnr_sub1,1:3,which.max)
 anglemax3d[alltsnr_sub1[,,,1]==0] <- NA
 
-
-# TODO: plot best angle at each pos
-
 angles <- angle_from_taskname(tsnr_fname[subj1_idx])
 anglemax3d <- angles[anglemax3d] 
 dim(anglemax3d) <- dim(alltsnr_sub1)[1:3]
+
+# TODO: plot best angle at each pos
+
+## volumetric plots
 rslice_ys <- function(data)
     lapply(c(20,45,65),
            \(y) reshape2::melt(data[,y,],
@@ -121,10 +122,13 @@ p<- rslice_zs(anglemax3d) |>
 
 ###
 
-b0 <- oro.nifti::readNIfTI('../Figures/tsnr/sub-1_space-MNI152NLin2009cAsym_fmap.nii.gz')@.Data
+b0 <- oro.nifti::readNIfTI('./maxangle_mni/sub-1_space-MNI152NLin2009cAsym_fmap.nii.gz')@.Data
 b0[mni_mask==0]<-NA
-#system("3dresample -inset ~/.templateflow/tpl-MNI152NLin2009cAsym/tpl-MNI152NLin2009cAsym_res-01_T1w.nii.gz -master ../Figures/tsnr/sub-1_space-MNI152NLin2009cAsym_fmap.nii.gz -prefix MNI_T1w.nii.gz")
+
+# full mni brain for underaly/reference
+# see 02_masks.bash for MNI_T1w.nii.gz
 mni <- oro.nifti::readNIfTI('MNI_T1w.nii.gz')@.Data
+
 
 
 p_anat <- cowplot::plot_grid(ncol=4,
@@ -158,3 +162,46 @@ p_anat <- cowplot::plot_grid(ncol=4,
   guides(fill="none")
  )
 ggsave(p_anat,file='b0_and_anat.png')
+
+### cor between tsnr angle at max and scan time calculation (epi mag) 
+atscanmax <- oro.nifti::readNIfTI('./maxangle_mni/sub-1_a10_space-MNI_maxangle.nii.gz')@.Data
+tsnr_angle2 <- oro.nifti::readNIfTI('./maxangle_mni/sub-1_angleatmax-tsnr.nii.gz')@.Data
+atscanmax[mni_mask==0]<-NA
+
+# done in R vs done in pyhton
+cor(as.vector(tsnr_angle2),as.vector(anglemax3d), use='pairwise.complete.obs') 
+# [1] .9998497
+
+cor(as.vector(anglemax3d),as.vector(atscanmax), use='pairwise.complete.obs') 
+# [1] -0.1023047
+cor(as.vector(anglemax3d),as.vector(b0), use='pairwise.complete.obs') 
+# [1] 0.1538157
+cor(as.vector(atscanmax),as.vector(b0), use='pairwise.complete.obs') 
+# [1] -0.2962406
+
+angle_cut <- function(x) cut(as.vector(x),breaks=c(-Inf,-7,7, Inf)) |> as.numeric()
+cor(angle_cut(atscanmax), angle_cut(anglemax3d), use='pairwise.complete.obs')
+# [1] 0.1096362
+
+# okay what about only where it matters
+tsnr_range <- oro.nifti::readNIfTI('./maxangle_mni/tsnr-range.nii.gz')@.Data
+asvec_cor <- function(x,y) cor(as.vector(x), as.vector(y),  use='pairwise.complete.obs')
+asvec_cor(atscanmax[tsnr_range>20], anglemax3d[tsnr_range>20])
+# [1] 0.1411983
+
+# dist for epi is mostly -40 and 20 with 0 getting afew. for tsnr most voxels get assigned angle 6 and 20?!
+cbind(
+    rle(sort(round(atscanmax[tsnr_range>20] ))) |> with(data.frame(epi=values,nepivox=lengths)) ,
+    rle(sort(round(anglemax3d[tsnr_range>20]))) |> with(data.frame(tsnr=values,ntsnrvox=lengths))) |>
+    knitr::kable()
+
+
+angle_max <- data.frame(
+    tsnr=as.vector(anglemax3d), 
+    epi=as.vector(atscanmax),
+    b0=as.vector(b0))
+p_angle <- ggplot(angle_max) +
+    aes(x=b0, y=epi, color=b0) +
+    geom_jitter() +
+    theme_minimal()
+ggsave(p_angle,file="max_angle_corr.png")
