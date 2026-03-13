@@ -2,18 +2,50 @@
 #
 # pilot to bids for fmriprep, sdcflows, etc
 #
-#
-set -euo pipefail
 # 20251017WF - init
 #     1020 - phantom
 #     1022 - WF & CM data
+# 20260301 - WF 3depi
+
+set -euo pipefail
 export PATH="/opt/ni_tools/lncdtools:/opt/ni_tools/afni:/opt/ni_tools/fsl:$PATH"
 
 ##
 #
 #ls /mnt/TWIX_RAID/Prisma2/Moon/BOLDSliceOrient/2025-10-22/Subject1/DICOM/ |   perl -F_ -slane 'push @a, {p=>$_,s=>$F[$#f]}; END{print join("\n", map {$_->{p}} (sort {$a->{s} <=> $b->{s}} @a));}'
 #
-#
+datadir=$(cd $(dirname "$0")/../Data/; pwd)
+bids="$datadir/bids-3depi"
+#indir="$datadir/20260225-18_50_33/"
+mknii $bids/sub-1/anat/sub-1_T1w.nii.gz \
+	../Data/20260225-18_50_33/T1MPRAGE/1.3.12.2.1107.5.2.43.167046.202602251853544656445414.0.0.0.dicom.zip
+
+# multi-angle
+mknii $bids/sub-1/func/sub-1_task-n40p20_acq-inc_bold.nii.gz \
+	../Data/20260225-18_50_33/a_ep2d_bold_ang_n40p20_2mm_ascend_incang/*.dicom.zip
+mknii $bids/sub-1/fmap/sub-1_acq-largefov_magnitude.nii.gz \
+	../Data/20260225-18_50_33/GRE_FieldMap_LargeFOV/1.3.12.2.1107.5.2.43.167046.2026022518585494739546502.0.0.0.dicom.zip
+add-intended-for -fmap '*acq-largefov*magnitude1/*.json' -for '*task-n40p20*.nii.gz' $bids/subj-1
+mknii $bids/sub-1/fmap/sub-1_acq-largefov_phasediff.nii.gz \
+	../Data/20260225-18_50_33/GRE_FieldMap_LargeFOV_1/1.3.12.2.1107.5.2.43.167046.2026022518585494741246503.0.0.0.dicom.zip
+add-intended-for -fmap '*acq-largefov*phasediff*.json' -for '*task-n40p20*.nii.gz' $bids/subj-1
+
+#ls -d ../Data/20260225-18_50_33/a_ep3d_bold_fid_2mm_R2x2*
+#   ...R2x2 -13
+#   ...R2x2 13
+#   ...R2x2 20
+#   ...R2x2 -33.24
+#   ...R2x2 -39.9
+for angle in -13 13 20 -33.24 -39.9; do
+  case $angle in -39.9) xangle=40;; -33.24) xangle=33;; *) xangle=$angle esac
+  taskname=${xangle/-/n} # -13 to n12
+  mknii $bids/sub-1/func/sub-1_task-${taskname}_acq-3d_bold.nii.gz     ../Data/20260225-18_50_33/a_ep3d_bold_fid_2mm_R2x2\ $angle/*zip
+  mknii $bids/sub-1/fmap/sub-1_acq-${taskname}_dir-AP_epi.nii.gz  ../Data/20260225-18_50_33/SpinEchoFieldMap_AP_T_C$angle/*zip
+  mknii $bids/sub-1/fmap/sub-1_acq-${taskname}_dir-PA_epi.nii.gz  ../Data/20260225-18_50_33/SpinEchoFieldMap_PA_T_C$angle/*zip
+  add-intended-for -fmap "*acq-${taskname}_*.json" -for "*task-${taskname}_*.nii.gz" $bids/sub-1
+done
+
+exit
 
 bids="$(cd $(dirname "$0")/../Data/; pwd)/bids-a10"
 mkdir -p $bids

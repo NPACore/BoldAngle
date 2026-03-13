@@ -27,6 +27,8 @@ set ID_FILE=gyrus2
 REM fixed location to use as staging area
 set upload_area=~/sshremote/BOLDSliceAngle/%THISCOMP%
 
+
+:ssh
 REM Server interaction
 REM ------------------
 REM send dicom folders and angle.txt to server; run pipeline; copy data back
@@ -34,6 +36,8 @@ REM best-dicom-folder is always the output
 REM always start with rm just incase we failed before
 ssh   -i %ID_FILE% %SERVER% "test -d '%upload_area%' && rm -r '%upload_area%'; mkdir -p '%upload_area%'"
 scp -rpi %ID_FILE% %* %SERVER%:%upload_area%
-ssh   -i %ID_FILE% %SERVER% "/home/recontwix/data/BOLDSliceAngle/FmapCorrect/proc_multitilt.bash %upload_area%" 
+REM run proc_multitilt.bash after finding what folder is which 
+ssh   -i %ID_FILE% %SERVER% "/home/recontwix/data/BOLDSliceAngle/FmapCorrect/00_MTRP %upload_area%" 
 scp -rpi %ID_FILE% %SERVER%:%upload_area%/dcm-best-tilt besttilt
-ssh -i %ID_FILE% %SERVER% "rm %upload_area%" 
+REM can remove if we got what we needed
+ssh -i %ID_FILE% %SERVER% "test -d '%upload_area%/dcm-best-tilt' && rm -r %upload_area%" 

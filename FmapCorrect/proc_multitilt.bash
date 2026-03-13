@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # USAGE:
-#     $0 epi.dcm/ gremag.dcm/ grephase.dcm/
+#     $0 -mtilt epi.dcm/ -mag gremag.dcm/ -phase grephase.dcm/ -out outputdir/
 #
 # distortion correct and pick best angle by magnitude mutli-tilt/sliceangle EPI acquisition
 #
@@ -26,26 +26,45 @@ set -euo pipefail
 export PATH="$PATH:/opt/ni_tools/afni:/opt/ni_tools/fsl:/opt/ni_tools/fmri_processing_scripts:/opt/ni_tools/lncdtools"
 export MRI_STDDIR=NA # preproc scripts look for MNI dir. dont need for distortion correction
 
-if [[ $# -ne 3 || "$*" =~ ^-h ]]; then 
-  sed -n "s:\$0:$0:; 1,/##END SYN/ s/# //p" "$0"
-  exit 1
-fi
-
 # where does this script live. need to find it's sibling 'sdc.sh' 
 scriptdir=$(cd "$(dirname "$(readlink -f "$0")")";pwd -L)
 
-## always exactly 3 arguments
-dicom_epi=${1?-multi tilt epi dcm folder}   #../Data/ICTR-MOON_TEST_20230803_152316_668000/DICOM/A_EP2D_BOLD_ANG_N40P20_2MM_ASCEND_0003/
-dicom_mag=${2?-GRE fmap mag folder}         #../Data/ICTR-MOON_TEST_20230803_152316_668000/DICOM/GRE_FIELDMAP_0010/
-dicom_phasediff=${3?-GRE fmap phase folder} #../Data/ICTR-MOON_TEST_20230803_152316_668000/DICOM/GRE_FIELDMAP_0011/
+print_help(){
+  sed -n "s:\$0:$0:; 1,/##END SYNOPSYS/ s/# //p" "$0"
+}
+
+if [[ $# -eq 0 || "$*" =~ ^-h ]]; then 
+  print_help
+  exit 0
+fi
+
+### Parse Args
+# ## if args were always the same
+# dicom_epi=${1?-multi tilt epi dcm folder}   #../Data/ICTR-MOON_TEST_20230803_152316_668000/DICOM/A_EP2D_BOLD_ANG_N40P20_2MM_ASCEND_0003/
+# dicom_mag=${2?-GRE fmap mag folder}         #../Data/ICTR-MOON_TEST_20230803_152316_668000/DICOM/GRE_FIELDMAP_0010/
+# dicom_phasediff=${3?-GRE fmap phase folder} #../Data/ICTR-MOON_TEST_20230803_152316_668000/DICOM/GRE_FIELDMAP_0011/
+# out=${4?-output directory} # ${TMPDIR:-wf}/${TMPPREFIX:-$(date +%F_%s)}
+declare dicom_epi dicom_ag dicom_phase out
+while [ $# -gt 0 ]; do
+  case $1 in
+    -mtilt*|-epi*) dicom_epi=${2:?mtilt/epi specified but no dir given}; shift 2;;
+    -mag*) dicom_mag=${2:?mag specified but no dir given}; shift 2;;
+    -phase*) dicom_phase=${2:?phase specified but no dir given}; shift 2;;
+    -out*) out=${2:?phase specified but no dir given}; shift 2;;
+  esac
+done
+[ -z "$dicom_epi" -o -z "$dicom_mag" -o -z "$dicom_phase" ] &&
+	echo  "must specify -mtilt,  -mag, and -phase!" >&2 && exit 1
+[ -z "$out" ] && out=$(dirname $dicom_epi)/best_mtilt
+
 
 ## sanity checks
 ! test -d "$dicom_epi" &&
-	echo "epi dicom dir '$dicom_epi' is not a directory" 2>&1 && exit 1
+	echo "'-mtilt' epi dicom dir '$dicom_epi' is not a directory" 2>&1 && exit 1
 ! test -d "$dicom_mag" &&
-	echo "GRE mag dicom dir '$dicom_mag' is not a directory" 2>&1 && exit 1
+	echo "'-mag' GRE mag dicom dir '$dicom_mag' is not a directory" 2>&1 && exit 1
 ! test -d "$dicom_phasediff" &&
-	echo "GRE phase dicom dir '$dicom_phasediff' is not a directory" 2>&1 && exit 1
+	echo "'-phase' GRE phase dicom dir '$dicom_phasediff' is not a directory" 2>&1 && exit 1
 
 n_mag=$(ls "$dicom_mag" |wc -l)
 n_phase=$(ls "$dicom_phasediff"|wc -l)
@@ -55,7 +74,6 @@ if [ $n_mag -le $n_phase ]; then
 fi
 
 ## do pipeline
-out=$(mktemp -d ${TMPDIR:-wf}/${TMPPREFIX:-$(date +%F)_XXX})
 mkdir -p $out
 
 echo "## Reading in raw data"
