@@ -7,6 +7,7 @@ datadir="$(cd "$(dirname "$0")/../Data"; pwd -P)"
 #  BIDS=${BIDS:-$datadir/bids}
 #  BIDS=${BIDS:-$datadir/bids-a10} # 20251022
   BIDS=${BIDS:-$datadir/bids-3depi} # 20260301
+echo $BIDS                          # 20260328, run externally by 3depi_iso/01_fmriprpe.bash
 
 ! test -d $BIDS && echo "ERROR: env BIDS ($BIDS) directory DNE" && exit 1
 dataset=$(basename "$BIDS")
@@ -18,7 +19,7 @@ bidsdb=$datadir/db/$(basename $BIDS)
 
 mkdir -p $OUT $FSOUT $WORK $bidsdb
 
-export FS_LICENSE="$(cd $PWD; pwd -P)/fs_license.txt" TEMPLATEFLOW_HOME=$HOME/.templateflow
+export FS_LICENSE="/opt/ni_tools/fs_license.txt" TEMPLATEFLOW_HOME=$HOME/.templateflow
 
 # doesn't matter here. but for large bids dataset, wouldn't want to regenerate
 test -r $bidsdb/layout_index.sqlite ||
@@ -62,7 +63,7 @@ for task in ""; do
     "$@" \
     --bids-database-dir $bidsdb \
     --fs-subjects-dir $FSOUT \
-    -d $OUT `# reuse anat derives when they exist` \
+    `: -d $OUT` `# reuse anat derives when they exist` \
     -w $WORK \
     "${extra_opts[@]}" \
     $BIDS $OUT participant
