@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# calc best angle based on tsnr
+#
+
+# 20260328 - 3depi iso in own folder
+# ../3depi_iso/02b_tsnr_angle.bash
 
 # 20260312-  for 3depi
 mkdir -p ./maxangle_mni/3depi/
@@ -13,6 +18,28 @@ skip-exist ./maxangle_mni/3depi/sub-1_angleatmax-tsnr.nii.gz  \
         -i ./maxangle_mni/3depi/sub-1_tsnr-3depiall4d.nii.gz  \
         -m ../Data/preproc/bids-3depi/fmriprep-25.2.3/sub-1/func/sub-1_task-13_acq-3d_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz \
         -o __SKIPFILE
+
+## 20260316 3depi is 2x2x !!3!!
+skip-exist ./maxangle_mni/3depi/sub-1_res-upsample_angleatmax-tsnr.nii.gz \
+  3dresample -prefix __SKIPFILE -master ../maxangle_mni/sub-1_angleatmax-tsnr.nii.gz  -inset ./maxangle_mni/3depi/sub-1_angleatmax-tsnr.nii.gz
+
+# and has fewer angles so make epi2d version with same angles
+# -40 -33 -13 13 20
+skip-exist ./maxangle_mni/sub-1_tsnr-n40n33n13p13p20.nii.gz \
+ 3dTcat -prefix __SKIPFILE \
+        ../Data/tsnr/sub-1_task-restn39_tsnr.nii.gz \
+        ../Data/tsnr/sub-1_task-restn33_tsnr.nii.gz \
+        ../Data/tsnr/sub-1_task-restn13_tsnr.nii.gz \
+        ../Data/tsnr/sub-1_task-rest13_tsnr.nii.gz \
+        ../Data/tsnr/sub-1_task-rest20_tsnr.nii.gz
+skip-exist maxangle_mni/sub-1_select-n40n33n13p13p20_angleatmax-tsnr.nii.gz \
+    ../FmapCorrect/angle_at_max.py  \
+        --nosd \
+        -l ./maxangle_mni/3depi/angles.txt \
+        -i ./maxangle_mni/sub-1_tsnr-n40n33n13p13p20.nii.gz  \
+        -m mni_brainmask.nii.gz \
+        -o __SKIPFILE
+        #-m ../Data/preproc/fmriprep-25.2.3/sub-1/func/sub-1_task-rest0_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz  \
 
 # Oct 27 2025
 test -r ./maxangle_mni/sub-1_tsnr-all4d.nii.gz ||
