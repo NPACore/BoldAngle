@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+set -xeuo pipefail
+export PATH="$PATH:/opt/ni_tools/afni:/opt/ni_tools/fsl:/opt/ni_tools/fmri_processing_scripts:/opt/ni_tools/lncdtools"
+export MRI_STDDIR=NA # preproc scripts look for MNI dir. dont need for distortion correction
+
+# reslice and sdc with fsl
+# data from ../AngleCompare/00_bids.bash -> ../Data/bids-a10/sub-1/fmap/sub-1_acq-largefov_*
+
+# 20260316WF - copy from 01b_proc-10a.sh
+# 20260402WF - copy from 01c_proc-ep3d.sh
+
+BIDS=$PWD/../Data/bids-3depi2x2x2/
+sub=sub-1iso3d
+run=''
+# find ../Data/bids-3depi2x2x2/sub-1iso3d -iname '*largefov*' -or -iname '*n40p20*'
+# ../Data/bids-3depi2x2x2/sub-1iso3d/func/sub-1iso3d_task-n40p20_bold.nii.gz
+# ../Data/bids-3depi2x2x2/sub-1iso3d/fmap/sub-1iso3d_acq-largefov_magnitude1.nii.gz
+# ../Data/bids-3depi2x2x2/sub-1iso3d/fmap/sub-1iso3d_acq-largefov_phasediff.nii.gz
+
+epi="$BIDS/$sub/func/${sub}_task-n40p20_bold.nii.gz"
+mag="$BIDS/$sub/fmap/${sub}_acq-largefov_magnitude1.nii.gz"
+phase="$BIDS/$sub/fmap/${sub}_acq-largefov_phasediff.nii.gz"
+
+out=$PWD/wf/human-largefov-3depi2x2x2/$sub$run
+mkdir -p $out
+# preprocessDistortion adds sibling files to $phase. so link into output dir
+test -r $out/$(basename $mag) || ln -s $mag $_; mag=$_
+test -r $out/$(basename $phase) || ln -s $phase $_; phase=$_
+
+# 20260316 is this needed? get a concerning warning message
+test -r $out/largefov_gre.fmcfg || ln -s $PWD/largefov_gre.fmcfg $_
+
+resliced=$out/resliced.nii.gz                # input
+undistort=$out/epi_undistorted_masked.nii.gz # output
+
+#3drefit -relabel_all_str "$(cat angle.txt | tr '\n' ' ')" $epi
+
+test -r $resliced || 
+  time niinote  $resliced \
+     mcflirt \
+     `#-refvol $mag` \
+     -out $resliced \
+     -in  $epi
+
+# for reference, not used elsehwere in pipeline
+# also see ../B0compare/02_align.bash
+if ! test -r $out/resliced_volreg.nii.gz; then
+  3dresample -inset $mag -master $epi -prefix $out/mag_res.nii.gz
+  3dvolreg -overwrite -base $out/mag_res.nii.gz -dfile $out/resliced_mcmat.1D -prefix $out/resliced_volreg.nii.gz   $epi
+fi
+
+
+if ! test -r $out/mean_epi_brain.nii.gz; then
+    3dTstat  -prefix $out/mean_epi.nii.gz -mean $resliced
+    bet $out/mean_epi.nii.gz $out/mean_epi_brain.nii.gz
+fi
+
+
+fmap_unwarp_field=$out/sdc/unwarp/EF_UD_warp.nii.gz
+EchoTime=$(jq '.EchoTime' ${epi/.nii.gz/.json})
+test -r $fmap_unwarp_field ||
+  ./sdc.sh "$out/mean_epi_brain.nii.gz" "$mag" "$phase" $EchoTime 
+
+
+# are these two steps needed? ref can be 4d? no need to convert?
+#inweight="-inweight $out/sdc/unwarp/EF_UD_fmap_sigloss" # $(pwd)/unwarp/EF_UD_fmap_sigloss.nii.gz
+#convertwarp --ref=$out/mean_epi.nii.gz \
+#      --warp1=$fmap_unwarp_field  \
+#      --relout \
+#      --out=$out/undistort
+ref=$out/mean_epi_brain.nii.gz
+test -r $undistort ||
+ niinote $undistort \
+  applywarp --in=$resliced \
+  --out=$undistort \
+  `#--warp=$out/undistort` \
+  --warp=$fmap_unwarp_field \
+  --ref=$ref --rel \
+  --mask=$out/sdc/unwarp/EF_UD_fmap_mag_brain_mask.nii.gz \
+  --interp=spline 
+
+skip-exist $out/angles_at_max.nii.gz \
+ ./angle_at_max.py \
+	-i $out/epi_undistorted_masked.nii.gz \
+	-m $out/mean_epi_brain.nii.gz \
+	-o __SKIPFILE
