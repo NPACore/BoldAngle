@@ -320,47 +320,6 @@ niishow(fliplr(rot90(permute(tsnr,[3 2 1]),2)));
 #+RESULTS:
 [[file:Figures/orgmode/tsnr.png]]
 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
-
 Code for similiar in R
 #+begin_src R :session
 a10_rest_f <- Sys.glob('../Data/preproc/fmriprep-25.2.3/sub-*/func/sub-*_task-rest*_space-MNI152NLin2009cAsym_desc-mean_bold.nii.gz')
@@ -544,29 +503,6 @@ between_acq_cors|>
 
 #+RESULTS:
 [[file:Figures/orgmode/rest_a10_correlatons.png]]
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
-
 
 * tSNR of ROIs at angles
 Justification. **CITE**
@@ -597,14 +533,23 @@ Correlations between acquisitions extracted from [[file:AngleCompare/03a_tsnr_cm
 mni_mask <- readNifti('AngleCompare/mni_brainmask.nii.gz')
 
 images_to_cor <- list(
-  b0_1='AngleCompare/maxangle_mni/sub-1_space-MNI152NLin2009cAsym_fmap.nii.gz',
-  b03d_1='AngleCompare/maxangle_mni/sub-1_ses-iso3d_space-MNI152NLin2009cAsym_fmap.nii.gz',
-  a10_s1='AngleCompare/maxangle_mni/sub-1_angleatmax-n40p20_subset5.nii.gz',
-  a10_s2='AngleCompare/maxangle_mni/sub-2_angleatmax-n40p20_subset5.nii.gz',
-  a10_s1_3d = 'AngleCompare/maxangle_mni/sub-1_ses-iso3d_a10_space-MNI_maxangle.nii.gz',
-  tsnr_s1='AngleCompare/maxangle_mni/sub-1_select-n40n33n13p13p20_angleatmax-tsnr.nii.gz',
-  tsnr_s2='AngleCompare/maxangle_mni/sub-2_select-n40n33n13p13p20_angleatmax-tsnr.nii.gz',
-  tsnr_s1_3d = 'AngleCompare/maxangle_mni/3depi2x2x2/sub-1iso3d_angleatmax-tsnr.nii.gz')
+  msa_1='AngleCompare/maxangle_mni/sub-1_angleatmax-n40p20_subset5.nii.gz',
+  msa_2='AngleCompare/maxangle_mni/sub-2_angleatmax-n40p20_subset5.nii.gz',
+  # ERROR!! starts at 0 instead of -20
+  #msa_s1_3d = 'AngleCompare/maxangle_mni/sub-1_ses-iso3d_a10_space-MNI_maxangle.nii.gz',
+  msa_1_3d = 'AngleCompare/maxangle_mni/sub-1e3d_a10_space-MNI_maxangle.nii.gz',
+
+  b0_1='AngleCompare/maxangle_mni/sub-1_space-MNI152NLin2009cAsym_fmapDirect.nii.gz',
+  b0_2='AngleCompare/maxangle_mni/sub-2_space-MNI152NLin2009cAsym_fmapDirect.nii.gz',
+  b03d_1='AngleCompare/maxangle_mni/sub-1iso3d_space-MNI152NLin2009cAsym_fmapDirect.nii.gz',
+
+  tsnr_1='AngleCompare/maxangle_mni/sub-1_select-n40n33n13p13p20_angleatmax-tsnr.nii.gz',
+  tsnr_2='AngleCompare/maxangle_mni/sub-2_select-n40n33n13p13p20_angleatmax-tsnr.nii.gz',
+  tsnr_1_3d = 'AngleCompare/maxangle_mni/3depi2x2x2/sub-1iso3d_angleatmax-tsnr.nii.gz',
+
+  sd_1='AngleCompare/maxangle_mni/sub-1_select-n40n33n13p13p20_angleatmax-sd.nii.gz',
+  sd_2='AngleCompare/maxangle_mni/sub-2_select-n40n33n13p13p20_angleatmax-sd.nii.gz',
+  sd_1_3d='AngleCompare/maxangle_mni/sub-1iso3d_select-n40n33n13p13p20_angleatmax-sd.nii.gz')
 
 compare_cors_df <- do.call(data.frame,
 			   lapply(images_to_cor,
@@ -614,50 +559,31 @@ compare_cors_df <- do.call(data.frame,
 #+end_src
 
 #+RESULTS:
-|            |   b0_1 | b03d_1 | a10_s1 | a10_s2 | a10_s1_3d | tsnr_s1 | tsnr_s2 | tsnr_s1_3d |
-|------------+--------+--------+--------+--------+-----------+---------+---------+------------|
-| b0_1       |      1 |  0.223 | -0.279 | -0.314 |    -0.095 |  -0.193 |  -0.175 |     -0.026 |
-| b03d_1     |  0.223 |      1 | -0.276 | -0.275 |    -0.215 |  -0.053 |  -0.082 |     -0.041 |
-| a10_s1     | -0.279 | -0.276 |      1 |  0.529 |     0.435 |   0.158 |    0.09 |     -0.099 |
-| a10_s2     | -0.314 | -0.275 |  0.529 |      1 |     0.371 |   0.155 |    0.14 |     -0.087 |
-| a10_s1_3d  | -0.095 | -0.215 |  0.435 |  0.371 |         1 |   0.087 |   0.013 |     -0.102 |
-| tsnr_s1    | -0.193 | -0.053 |  0.158 |  0.155 |     0.087 |       1 |   0.163 |      0.073 |
-| tsnr_s2    | -0.175 | -0.082 |   0.09 |   0.14 |     0.013 |   0.163 |       1 |      0.039 |
-| tsnr_s1_3d | -0.026 | -0.041 | -0.099 | -0.087 |    -0.102 |   0.073 |   0.039 |          1 |
+|           |  msa_1 |  msa_2 | msa_1_3d |   b0_1 |   b0_2 | b03d_1 | tsnr_1 | tsnr_2 | tsnr_1_3d |   sd_1 |   sd_2 | sd_1_3d |
+|-----------+--------+--------+----------+--------+--------+--------+--------+--------+-----------+--------+--------+---------|
+| msa_1     |      1 |  0.529 |    0.411 |   -0.3 | -0.286 | -0.272 |  0.158 |   0.09 |    -0.099 |  0.039 |  0.029 |  -0.026 |
+| msa_2     |  0.529 |      1 |    0.385 |  -0.33 | -0.314 | -0.308 |  0.155 |   0.14 |    -0.087 |  0.059 |  0.032 |  -0.018 |
+| msa_1_3d  |  0.411 |  0.385 |        1 | -0.419 | -0.379 | -0.242 |  0.153 |  0.131 |     -0.19 |  0.071 |   0.09 |  -0.103 |
+| b0_1      |   -0.3 |  -0.33 |   -0.419 |      1 |  0.829 |  0.859 | -0.192 |  -0.18 |    -0.014 | -0.097 | -0.122 |    0.04 |
+| b0_2      | -0.286 | -0.314 |   -0.379 |  0.829 |      1 |  0.672 | -0.129 | -0.114 |     0.099 | -0.052 | -0.025 |   0.018 |
+| b03d_1    | -0.272 | -0.308 |   -0.242 |  0.859 |  0.672 |      1 | -0.163 | -0.148 |    -0.116 | -0.054 |  -0.08 |  -0.044 |
+| tsnr_1    |  0.158 |  0.155 |    0.153 | -0.192 | -0.129 | -0.163 |      1 |  0.163 |     0.073 |  0.287 |  0.138 |  -0.024 |
+| tsnr_2    |   0.09 |   0.14 |    0.131 |  -0.18 | -0.114 | -0.148 |  0.163 |      1 |     0.039 |  0.096 |  0.303 |   0.019 |
+| tsnr_1_3d | -0.099 | -0.087 |    -0.19 | -0.014 |  0.099 | -0.116 |  0.073 |  0.039 |         1 |  0.024 |  0.041 |  -0.145 |
+| sd_1      |  0.039 |  0.059 |    0.071 | -0.097 | -0.052 | -0.054 |  0.287 |  0.096 |     0.024 |      1 |  0.171 |  -0.066 |
+| sd_2      |  0.029 |  0.032 |     0.09 | -0.122 | -0.025 |  -0.08 |  0.138 |  0.303 |     0.041 |  0.171 |      1 |  -0.033 |
+| sd_1_3d   | -0.026 | -0.018 |   -0.103 |   0.04 |  0.018 | -0.044 | -0.024 |  0.019 |    -0.145 | -0.066 | -0.033 |       1 |
 
 #+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/correlatons.png
 pacman::p_load(corrplot)
-corrplot.mixed(compare_cors_df, order='AOE')
+corrplot.mixed(compare_cors_df) #, order='AOE')
 title("Voxelwise correlation between datasets")
 #+end_src
 
 #+RESULTS:
 [[file:Figures/orgmode/maxangle/correlatons.png]]
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
-
 ** Original abstract figure
-
+[[file:AngleCompare/03a_tsnr_cmp.R]] 
   * ~./maxangle_mni/sub-1_space-MNI152NLin2009cAsym_fmap.nii.gz~
   * ~../Data/tsnr/sub-[12]_task-rest*_tsnr.nii.gz~ w/sub-1 + ~angle_from_taskname()~ & ~which.max~
 # #+ATTR_HTML: :width 300px
@@ -668,105 +594,6 @@ title("Voxelwise correlation between datasets")
 #+NAME: fig-tsnrb0
 #+CAPTION: coronal slices showing tSNR and B0
 [[./Figures/anat_tsnr_b0_mni.png]]
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 
 * 3D GRE
 
@@ -1197,7 +1024,10 @@ jq '[.IntendedFor, (.SliceTiming|length)]|@tsv' -M  Data/bids-3depi/sub-1/fmap/s
     * TODO: cor mat of tsnr across all angles
     * CODE: how to get data into nifti object
       https://github.com/michaelhallquist/ggbrain/blob/main/R/ggbrain_images.R#L53 (add_array_as_image)
-
+** 2026-04-28
+   epi3d started at 0 instead of -20!
+  /home/boldsliceangle/BOLDSliceAngle/FmapCorrect/wf/human-largefov-3depi2x2x2/sub-1iso3d/resliced_volreg.nii.gz
+  /home/boldsliceangle/BOLDSliceAngle/FmapCorrect/wf/human-largefov/sub-1/resliced_volreg.nii.gz
 * colophon :noexport:
 #+begin_src elisp :results none
 (setq org-display-remote-inline-images t)
