@@ -15,7 +15,7 @@ import numpy as np
 parser = argparse.ArgumentParser(
     description="Report max normalized intensity per voxel"
 )
-parser.add_argument("-i", "--input", type=str, required=True, help="Path to epi file.")
+parser.add_argument("-i", "--input", nargs='+', type=str, required=True, help="Path to epi file.")
 parser.add_argument("-m", "--mask", type=str, required=True, help="Path to mask file.")
 parser.add_argument(
     "-o", "--output", type=str, required=False, help="Path to save file."
@@ -45,23 +45,25 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-ep = nib.load(args.input)
 mask = nib.load(args.mask)
-
 ep_brain = np.where(np.asanyarray(mask.dataobj) > 0, 1, np.nan)
+
+ep_eg = nib.load(args.input[0]) # assume all have same header info!
+ep4d_data = np.squeeze(np.stack([nib.load(i).dataobj for i in args.input], axis=3))
+
 if args.nosd:
-    sd = np.ones(ep.dataobj.shape)
+    sd = np.ones(ep4d_data.shape)
 else:
     sd = np.std(
-        ep.dataobj, axis=(0, 1, 2), where=np.isfinite(ep_brain[..., np.newaxis])
+        ep4d_data, axis=(0, 1, 2), where=np.isfinite(ep_brain[..., np.newaxis])
     )
-mx = np.argmax(ep.dataobj / sd, axis=3)
+mx = np.argmax(ep4d_data / sd, axis=3)
 
 if args.output:
     an = np.loadtxt(args.labelfile, dtype=float)
     angle_3d = an[mx] * ep_brain
 
-    out = nib.Nifti1Image(angle_3d, ep.affine, ep.header)
+    out = nib.Nifti1Image(angle_3d, ep_eg.affine, ep_eg.header)
     nib.save(out, args.output)
 
     # maintain provenance
@@ -69,7 +71,7 @@ if args.output:
     os.system(notes)
 
 if args.normed_out:
-    vis = ep.dataobj / sd
-    nib.save(nib.Nifti1Image(vis, ep.affine, ep.header), args.normed_out)
+    vis = ep4d_data / sd
+    nib.save(nib.Nifti1Image(vis, ep_eg.affine, ep_eg.header), args.normed_out)
     notes = f'AFNI_NIFTI_TYPE_WARN=NO 3dNotes -h "{" ".join(sys.argv)}" "{args.normed_out}"'
     os.system(notes)

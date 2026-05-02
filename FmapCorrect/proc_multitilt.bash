@@ -45,17 +45,19 @@ fi
 # dicom_phasediff=${3?-GRE fmap phase folder} #../Data/ICTR-MOON_TEST_20230803_152316_668000/DICOM/GRE_FIELDMAP_0011/
 # out=${4?-output directory} # ${TMPDIR:-wf}/${TMPPREFIX:-$(date +%F_%s)}
 declare dicom_epi dicom_ag dicom_phase out
+angle=$scriptdir/angle.txt # only used to display motion difference
 while [ $# -gt 0 ]; do
   case $1 in
     -mtilt*|-epi*) dicom_epi=${2:?mtilt/epi specified but no dir given}; shift 2;;
     -mag*) dicom_mag=${2:?mag specified but no dir given}; shift 2;;
-    -phase*) dicom_phase=${2:?phase specified but no dir given}; shift 2;;
+    -phase*) dicom_phasediff=${2:?phase specified but no dir given}; shift 2;;
     -out*) out=${2:?phase specified but no dir given}; shift 2;;
+    -angle) angle=${2:?angle specified no file given}; shift 2;
   esac
 done
-[ -z "$dicom_epi" -o -z "$dicom_mag" -o -z "$dicom_phase" ] &&
+[ -z "$dicom_epi" -o -z "$dicom_mag" -o -z "$dicom_phasediff" ] &&
 	echo  "must specify -mtilt,  -mag, and -phase!" >&2 && exit 1
-[ -z "$out" ] && out=$(dirname $dicom_epi)/best_mtilt
+[ -z "$out" ] && out=$(dirname $dicom_epi)/dcm-best-tilt # matches default of 00_MTRP but doesn't have to
 
 
 ## sanity checks
@@ -65,6 +67,8 @@ done
 	echo "'-mag' GRE mag dicom dir '$dicom_mag' is not a directory" 2>&1 && exit 1
 ! test -d "$dicom_phasediff" &&
 	echo "'-phase' GRE phase dicom dir '$dicom_phasediff' is not a directory" 2>&1 && exit 1
+! test -r "$angle" &&
+	echo "'-angle $angle' is not a readable file!" 2>&1 && exit 1
 
 n_mag=$(ls "$dicom_mag" |wc -l)
 n_phase=$(ls "$dicom_phasediff"|wc -l)
@@ -76,6 +80,8 @@ fi
 ## do pipeline
 mkdir -p $out
 
+# angle used to compare moco; largefov_gre is fieldmap config file
+cp "$angle" $scriptdir/largefov_gre.fmcfg $out/
 echo "## Reading in raw data"
 epi=$out/epi_angles.nii.gz
 resliced=$out/resliced.nii.gz
@@ -102,7 +108,7 @@ time niinote $resliced \
 # see expected angles against those derived from the rigid alignmnet
 # this is unlikely to be seen when running, but will error here if the angles don't match
 echo "### tilt angle reslice vs expected"
-$scriptdir/affine2tilt.py $resliced.mat/ # $scriptdir/angle.txt
+$scriptdir/affine2tilt.py $resliced.mat/  $out/angle.txt
 
 
 echo "## brain extraction/skull strip"

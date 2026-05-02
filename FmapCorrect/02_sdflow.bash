@@ -5,7 +5,9 @@
 # also see ../B0compare/01_sdcflow.bash
 
 # bids=bids-phantom/; lab=phantom20251020
-bids=bids-a10/; lab=a10
+# bids=bids-a10/; lab=a10
+# 20260413
+bids=${BIDS:-bids-3depi2x2x2/}; lab=${LAB:-$(basename $bids)}
 
 bids=$(cd $(dirname $0)/../Data/$bids; pwd)
 out=$(cd $(dirname $0);pwd)/wf/$lab/flow/
@@ -16,4 +18,5 @@ dryrun podman run \
     --entrypoint sdcflows \
     nipreps/fmriprep:25.2.3 \
       --work $out/work \
-      $bids $out participant
+      --debug \
+      $bids $out participant |& tee $out/cli.log

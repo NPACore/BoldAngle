@@ -2,6 +2,7 @@
 set -xeuo pipefail
 export PATH="$PATH:/opt/ni_tools/afni:/opt/ni_tools/fsl:/opt/ni_tools/fmri_processing_scripts:/opt/ni_tools/lncdtools"
 export MRI_STDDIR=NA # preproc scripts look for MNI dir. dont need for distortion correction
+scriptdir=$(cd $(dirname "$0"); pwd)
 
 # ./sdc.bash "$out/mean_epi_brain.nii.gz" "$dicom_mag" "$dicom_phasediff" $(jq '.EchoTime' $out/epi_angles.json)
 # from 'prepare_fieldmap'
@@ -23,10 +24,14 @@ fmap_unwarp_field=$out/sdc/unwarp/EF_UD_warp.nii.gz
 ppd_args=(-magdir $dicom_mag -phasedir $dicom_phasediff  -mrpatt '*IMA')
 test -f $dicom_mag && ppd_args=(-mag $dicom_mag -phase $dicom_phasediff -method gre.nii.gz )
 
+# fmconfig could be in the outdir or a sibling to this script
+fmcfg=$out/largefov_gre.fmcfg
+test -r $fmcfg && fmcfg=$scriptdir/largefov_gre.fmcfg
+
 preprocessDistortion \
 	 -savedir $out/sdc \
 	 ${ppd_args[@]} \
-	 -fm_cfg $PWD/largefov_gre.fmcfg
+	 -fm_cfg $fmcfg
 
 # copy of func registration target
 fslmaths $epi_brain   $out/sdc/unwarp/EF_D_mc_target	

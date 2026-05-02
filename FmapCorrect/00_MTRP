@@ -9,13 +9,23 @@ use Cwd 'abs_path', 'cwd';
 
 my $scriptdir = dirname(abs_path(__FILE__));
 my $def_angle =  "$scriptdir/angle.txt";
-my $n_angle = 10;
+#my $n_angle = 10; # read file to get number instead
 
 die "must specify upload/session directory as first and only argument" if $#ARGV != 0;
 chdir $ARGV[0] or die "bad input directory '$ARGV[0]'. $!";
+my $angle=-r "angle.txt"?"angle.txt":$def_angle;
+
+# maybe no newline at the end?
+#chomp($n_angle = `wc -l < "$angle"`);
+use File::Slurp;
+my $n_angle = scalar(split /\n/, read_file($angle));
+
+
 my @seqs;
-for my $d  (split /\0/, qx/find -maxdepth 1 -mindepth 1 -type d -print0/) {
-  my @f=split /\0/, qx/find $d -mindepth 1 -type f -not -iname '.*' -print0/;
+for my $d  (split /\0/, qx/find -L -maxdepth 1 -mindepth 1 -type d -print0/) {
+  my @f=split /\0/, qx/find -L $d -mindepth 1 -type f -not -iname '.*' \\( -iname 'MR*' -or -iname '*.dcm' -or -iname '*IMA' \\)  -print0/;
+  #print "$d: $f[0]\n";
+  next if $#f < 0;
   my ($seqno,$pname,$aname,$phmag) = split /\s+/, qx/dicom_hinfo -tag 0020,0011 -tag 0018,0024 -tag 0018,1030 -tag 0051,1016 -no_name $f[0]/;
   push @seqs, {seqno=>$seqno, pname=>$pname, aname=>$aname, phmag=>$phmag, n=>$#f+1, d=>$d, ex=>$f[0]};
 }
@@ -33,10 +43,13 @@ for my $seq (@seqs){
   last if %phase && %mag && %epi;
 
 }
-die "ERROR: no mtilt 'epfid2d1' epi with $n_angle volume (matching angle.txt) in `pwd`" unless -d $epi{d};
-die "ERROR: no GRE mag 'fm2d2r' M/ND in `pwd`" unless -d $mag{d};
-die "ERROR: no GRE phase 'fm2d2r' P/ND in `pwd`; have mag at seqno $mag{seqno}" unless -d $phase{d};
+chomp(my $pwd=`pwd -L`);
+die "ERROR: no mtilt 'epfid2d1' epi with $n_angle volume (matching angle.txt) in $pwd" unless -d $epi{d};
+die "ERROR: no GRE mag 'fm2d2r' M/ND in $pwd" unless -d $mag{d};
+die "ERROR: no GRE phase 'fm2d2r' P/ND in $pwd; have mag at seqno $mag{seqno}" unless -d $phase{d};
 
-use Data::Dumper 'Dumper';
-say Dumper({e=>\%epi,m=>\%mag,p=>\%phase});
-system(qq($scriptdir/proc_multitilt.bash -mtilt $epi{d} -mag $mag{d} -phase $phase{d} -out `pwd`/dcm-best-tilt))
+#use Data::Dumper 'Dumper';
+#say Dumper({e=>\%epi,m=>\%mag,p=>\%phase});
+my $cmd=qq($scriptdir/proc_multitilt.bash -mtilt $epi{d} -mag $mag{d} -phase $phase{d} -out `pwd`/dcm-best-tilt -angle $angle);
+print("cd $pwd; $cmd");
+system($cmd) unless $ENV{DRYRUN};
