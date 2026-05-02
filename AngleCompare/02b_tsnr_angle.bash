@@ -2,6 +2,26 @@
 # calc best angle based on tsnr
 #
 
+# 20260430 - also do sd
+for prefix in ../Data/tsnr/a10/sub-{1,2} ../Data/tsnr/3depi2x2x2/sub-1iso3d; do
+  sub=$(basename $prefix)
+  concat4d=./maxangle_mni/${sub}_sd-n40n33n13p13p20.nii.gz 
+
+  # need to make sure we dont grab neg versions of positive
+  mapfile -t inputs < <(ls $prefix*res*{n40,n39,n33,n13,[^n]13,[^n]20}_sd.nii.gz)
+  ! [[ ${#inputs[@]} -eq 5 ]] && echo "ERROR not exactly 5 ${inputs[*]}" && exit 1
+  skip-exist $concat4d \
+   dryrun 3dTcat -prefix __SKIPFILE "${inputs[@]}"
+  skip-exist maxangle_mni/${sub}_select-n40n33n13p13p20_angleatmax-sd.nii.gz \
+    dryrun ../FmapCorrect/angle_at_max.py  \
+        --nosd \
+        -l ./maxangle_mni/3depi/angles.txt \
+        -i $concat4d  \
+        -m mni_brainmask.nii.gz \
+        -o __SKIPFILE
+done
+exit
+
 # 20260328 - 3depi iso in own folder
 # ../3depi_iso/02b_tsnr_angle.bash
 
