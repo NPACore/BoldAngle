@@ -373,32 +373,7 @@ Is the ~a10~ sequence representative? Does the epi intensity relate to tSNR?
 Means are generated after fmriprep. see [[file:AngleCompare/02d_mean.bash]] for rest and [[file:AngleCompare/02c_mni_warp.bash]] for a10
 
 #+begin_src R :session :results none
-niifile_vec <- function(img, mask=NULL, na.zero=TRUE){
-  m<-RNifti::readNifti(img)
-                                        # remove stuff outside the brain if given a mask
-  if(!is.null(mask)) m[mask==0]<-NA;
-                                        # already masked area might inflate correlation if treated as 0
-  if(na.zero) m[m==0] <- NA;
-  as.vector(m)
-}
-harmonize_angle <- function(angle){
-  case_when(
-            angle==-39~-40,
-            angle==-26~-27,
-            angle==-19~-20,
-            angle==-6~-7,
-            T~angle)
-}
-#' @examples
-#' rest_subj_angle(list("25.2.3/sub-2/func/sub-2_task-restn6_space-MNI152NLin2009cAsym_desc-mean_bold.nii.gz", "sub-1iso3d/func/sub-1iso3d_task-rest_acq-n13_space-MNI152NLin2009cAsym_desc-mean_bold.nii.gz"))
-rest_subj_angle <- function(niilist){
- niilist |>
-  stringr::str_extract('sub-([^/_]*)[/_].*rest.*?([np]?[0-9]+)_', group=1:2)|>
-  as.data.frame() |>
-  transmute(id=V1,
-            angle=V2|>gsub('^n','-',x = _) |> gsub('^p','',x=_) |>as.numeric()) |>
-  mutate(angle= harmonize_angle(angle))
-}
+source('../msa_funcs.R')
 
 # all resting state means from 02d
 niilist <- Sys.glob('Data/preproc/bids-*/fmriprep-25.2.3/sub-*/func/sub-*_task-rest*_space-MNI152NLin2009cAsym_desc-mean_bold.nii.gz')
