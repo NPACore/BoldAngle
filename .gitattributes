@@ -1,0 +1,2 @@
+*.nii.gz filter=lfs diff=lfs merge=lfs -text
+Data/bids-a10/sub-1/func/sub-1_task-n40p20_acq-inc_bold.json filter=lfs diff=lfs merge=lfs -text
