@@ -456,6 +456,18 @@ a10_rest_f <- Sys.glob('../Data/preproc/fmriprep-25.2.3/sub-*/func/sub-*_task-re
 sdc_a10_files <- Sys.glob('../FmapCorrect/wf/human-largefov/sub-[12]/epi_undistorted_masked.nii.gz')
 tsnr_range <- oro.nifti::readNIfTI('./maxangle_mni/tsnr-range.nii.gz')@.Data
 #+end_src
+* MSA sequence
+see [[file:Figures/MSA_max.svg]] which uses [[file:Figures/montage_nifit.R]] for nifti slice images.
+
+Time and angle pairs used in inkscape labels. (Extension->Text->Text Split)
+#+begin_src R  :session
+source('msa_funcs.R')
+msa_tr <- 5.5
+paste(msa_angles, msa_tr*c(1:10), sep="°@", collapse="s ")
+#+end_src
+
+#+RESULTS:
+: -40°@5.5s -33°@11s -27°@16.5s -20°@22s -13°@27.5s -7°@33s 0°@38.5s 7°@44s 13°@49.5s 20°@55
 
 * a10 vs mean vs tsnr
 Is the ~a10~ sequence representative? Does the epi intensity relate to tSNR?
@@ -508,28 +520,6 @@ ggplot(rest_mean_df) +
 
 #+RESULTS:
 [[file:Figures/orgmode/rest_mean_correlatons.png]]
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 
 ** explode angles (functions)
 Code to pull out each of the single volume angle acquisitions built into ~n40p20~
