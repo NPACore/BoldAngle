@@ -1,7 +1,62 @@
 #!/usr/bin/env bash
 # calc best angle based on tsnr
 #
+mksd(){
+  output=${1:?sd output name needed}; shift; #maxangle_mni/${sub}_select-n40n33n13p13p20_angleatmax-sd.nii.gz
+  mapfile -t inputs < <(ls $@) # prefix*res*{n40,n39,n33,n13,[^n]13,[^n]20}_sd.nii.gz
+  ! [[ ${#inputs[@]} -eq 5 ]] && echo "ERROR not exactly 5 ${inputs[*]}" && exit 1
+  concat4d=$(dirname "$output")/.sd-concat-for-$(basename "$output")
+  skip-exist $concat4d 3dTcat -prefix __SKIPFILE "${inputs[@]}"
+  skip-exist  $output \
+    ./FmapCorrect/angle_at_max.py  \
+        --nosd \
+        -l ./maxangle_mni/3depi/angles.txt \
+        -i $concat4d  \
+        -m mni_brainmask.nii.gz \
+        -o __SKIPFILE
+}
+mkmxtsnr(){
+  out=$1; shift # ./maxangle_mni/sub-1_angleatmax-tsnr.nii.gz
+  tsnr_4d=${out/-tsnr.nii.gz/-all4d.nii.gz}
+  [[ $out == $tsnr_4d || ! $out =~ -tsnr.nii.gz$ || $# -lt 5 ]] &&
+      echo "BAD USAGE: $out should be -tsnr.nii.gz; '$*' should be >4" && return 1
 
+  angle_lookup=$PWD/maxangle_mni_angless$#.txt
+  ! test -r $angle_lookup && echo "ERROR: wrong number of inputs? have $# expect 5 or 10. not $angle_lookup file" && return 2
+
+  skip-exist $tsnr_4d \
+    3dTcat -prefix __SKIPFILE $@
+
+
+  skip-exist $out \
+    ../FmapCorrect/angle_at_max.py  \
+          --nosd \
+          -l $angle_lookup \
+          -i $tsnr_4d \
+          -m mni_brainmask.nii.gz \
+          -o $out
+}
+
+## 20260503 - xcpd tsnr. created functions above
+#  02_tsnr.bash makes e.g. ../Data/tsnr/a10/sub-2_task-restn6_xcpd_tsnr.nii.gz
+#  from home/boldsliceangle/BOLDSliceAngle/Data/preproc/bids-a10/xcpd-ver-0.12.0_prep-25.2.3_type-nifti_fd-0.3_bp-yes/sub-2/func/sub-2_task-rest20_space-MNI152NLin2009cAsym_desc-denoisedSmoothed_bold.nii.gz
+
+#
+# cf. ../FmapCorrect/angle.txt
+a10txt=./maxangle_mni_angless10.txt
+a5txt=./maxangle_mni_angless5.txt
+test -r $a10txt || printf "%s\n" -40 -33 -27 -20 -13 -7 0 7 13 20 | tee $a10txt
+test -r $a5txt || printf "%s\n" -40 -33 -13 13 20 | tee $a5txt
+mkdir -p maxangle_mni/xcpd
+for prefix in ../Data/tsnr/a10/sub-{1,2} ../Data/tsnr/3depi2x2x2/sub-1iso3d; do
+  sub=$(basename $prefix)
+  # mksd maxangle_mni/${sub}_select-n40n33n13p13p20_angleatmax-sd.nii.gz $prefix/*xcpd*res*{n40,n39,n33,n13,[^n]13,[^n]20}_sd.nii.gz
+  mkmxtsnr ./maxangle_mni/xcpd/${sub}_anglemax-tsnr.nii.gz $(ls $prefix*{n40,n39,n33,n27,n26,n20,n13,n6,n7,[^n0-9]0,[^n]6,[^n]7,[^n]13,[^n]20}*xcpd_tsnr.nii.gz)
+  mkmxtsnr ./maxangle_mni/xcpd/${sub}_select-n40n33n13p13p20_anglemax-tsnr.nii.gz $(ls $prefix*{n40,n39,n33,n13,[^n]13,[^n]20}*_xcpd_tsnr.nii.gz)
+
+done
+
+exit
 # 20260430 - also do sd
 for prefix in ../Data/tsnr/a10/sub-{1,2} ../Data/tsnr/3depi2x2x2/sub-1iso3d; do
   sub=$(basename $prefix)

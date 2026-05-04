@@ -79,6 +79,21 @@ for sub in sub-1 sub-2 sub-1iso3d sub-1e3d; do
        -o $mni_maxangle &&
     3drefit -space MNI $mni_maxangle
 
+  # 20260503- also get a smoothed version
+
+  a10_max_s4="$ROOT/FmapCorrect/wf/$sdcname/${bsub}/angles_at_max_smooth4.nii.gz"
+  mni_maxangle=$PWD/maxangle_mni/${sub}_a10_space-MNI_smooth-4_maxangle.nii.gz
+  ! test -e $mni_maxangle &&
+   niinote $mni_maxangle \
+    apply -d 3 -e 3 \
+       -i $a10_max_s4 \
+       -r $mniref \
+       -t $t12mni\
+       -t $a10_lin \
+       -n NearestNeighbor \
+       -o $mni_maxangle &&
+    3drefit -space MNI $mni_maxangle
+
 
   # 2026-04-03
   # iso 3depi n40 started at 0 instead!
