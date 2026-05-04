@@ -475,6 +475,8 @@ Means are generated after fmriprep. see [[file:AngleCompare/02d_mean.bash]] for 
 
 #+begin_src R :session :results none
 source('./msa_funcs.R') # msa_angles, rest_subj_angle, niifile_vec
+mni_mask <- readNifti('AngleCompare/mni_brainmask.nii.gz')
+nii_vec_df <- function(f) data.frame(value=niifile_vec(f, mask=mni_mask)) |> mutate(i=1:n())
 
 # all resting state means from 02d
 niilist <- Sys.glob('Data/preproc/bids-*/fmriprep-25.2.3/sub-*/func/sub-*_task-rest*_space-MNI152NLin2009cAsym_desc-mean_bold.nii.gz')
@@ -620,9 +622,9 @@ between_acq_cors |> #filter(Var1=='a10') |>
 #+RESULTS:
 [[file:Figures/orgmode/rest_a10_correlatons.png]]
 
-* tSNR of ROIs at angles
+* tSNR of ROIs at angles (animated)
 Justification. **CITE**
-AON tSNR decreates
+AON tSNR decorates
 
 from [[file:Olfactory/01_roistat_tsnr.bash]] and [[file:Olfactory/02_tsnr_model.R]]
 
@@ -646,7 +648,6 @@ Then correlate angle to voxelwise across the whole brain between tSNR and a10 ma
 Correlations between acquisitions extracted from [[file:AngleCompare/03a_tsnr_cmp.R]]
 #+begin_src R :session :results none
 #angle_cut <- function(x) cut(as.vector(x),breaks=c(-Inf,-7,7, Inf)) |> as.numeric()
-mni_mask <- readNifti('AngleCompare/mni_brainmask.nii.gz')
 
 images_to_cor <- list(
   # maxangle's use a10 processed with bespoke reslice+fugue. NB. sub-1 n40p20 fmriprep has no FM correction. others look bad
@@ -719,10 +720,11 @@ title("Voxelwise correlation argmax MSA(ɸ), tSNR, GRE ΔB0")
 ** TODO B0 against max tsnr all voxels
 
 #+begin_src R :session :colnames yes
-roi_vec <- data.frame(roi=readNifti('./Olfactory/atlas-AonPirFTTubV4_res-func.nii.gz') |> as.vector()) |>
+roi_3d <- readNifti('./Olfactory/atlas-AonPirFTTubV4_res-func.nii.gz')
+roi_vec <- data.frame(roi=roi_3d |> as.vector()) |>
   mutate(i=1:n()) |>
   filter(roi>0) |>
-  mutate(roi=factor(roi, levels=1:5, labels=c('Aon','PirF','PirT','Tub','V4')))
+  mutate(roi=factor(roi, levels=1:5, labels=c('AON','PirF','PirT','Tub','V4')))
 
 roi_vec |> count(roi)
 #+end_src
@@ -730,11 +732,45 @@ roi_vec |> count(roi)
 #+RESULTS:
 | roi  |    n |
 |------+------|
-| Aon  | 3438 |
+| AON  | 3438 |
 | PirF | 3411 |
 | PirT | 9320 |
 | Tub  | 1608 |
 | V4   |  770 |
+
+*** Smoothed versions
+Using roi stats looks good! Why don't voxelwise ROIs look good? smoothing?
+Note! xcpd preproc is bandpassed. there's no mean for tSNR!
+#+begin_src R :session
+smoothed_mni_flist <- list(
+  msa_1='AngleCompare/maxangle_mni/sub-1_a10_space-MNI_smooth-4_maxangle.nii.gz',
+  msa_2='AngleCompare/maxangle_mni/sub-2_a10_space-MNI_smooth-4_maxangle.nii.gz',
+  tsnr_1='AngleCompare/maxangle_mni/xcpd/sub-1_anglemax-tsnr.nii.gz',
+  tsnr_2='AngleCompare/maxangle_mni/xcpd/sub-1_anglemax-tsnr.nii.gz')
+
+                                        # raw nifits for ggbrain plotting?
+smoothed_nii <- lapply(smoothed_mni_flist, \(f) readNifti(f)|>round())
+par(mfrow=c(1,2))
+hist(smoothed_nii$msa_1[roi_3d == 1], main="AON msa")
+# CRAZY -- bad tsnr. weird steps. no mean in bandpassed
+hist(smoothed_nii$tsnr_1[roi_3d == 1], main="AON tsnr")
+#+end_src
+
+#+begin_src R :session
+mt_nii <- images_to_cor[c('msa_1','tsnr_1')] |> lapply( \(f) readNifti(f)|>round())
+par(mfrow=c(1,2))
+hist(mt_nii$msa_1[roi_3d == 1], main="AON msa")
+hist(mt_nii$tsnr_1[roi_3d == 1], main="AON tsnr")
+#+end_src
+
+
+As ggplot?
+#+begin_src R :session
+vec_only_roi <- all_vecs |> mutate(i=1:n()) |> merge(roi_vec |> filter(roi %in% c('AON','Tub','V4')),all=F, by='i')
+#+end_src
+
+*** msa/tsnr by session
+
 
 #+begin_src R :session :results none
 # This is a very slow and memory intensive way to get row per voxel+ses. Should just go back and combine individually
@@ -748,7 +784,6 @@ all_vecs_seslong <- all_vecs |>
   merge(roi_vec, by='i', all.x=T)
 
 # need cbind and rbind. not finished here
-#nii_vec_df <- function(f) data.frame(value=niifile_vec(f, mask=mni_mask)) |> mutate(i=1:n())
 #all_vecs_2 <- rbind(
 #  nii_vec_df(images_to_cor$msa_1  )|>mutate(measure='msa', sess='1'),
 #  nii_vec_df(images_to_cor$msa_2  )|>mutate(measure='msa', sess='2'),
@@ -762,15 +797,156 @@ all_vecs_seslong <- all_vecs |>
 #  merge(roi_vec,by='i', all.x=T)
 #+end_src
 
-#+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/b0_by_.png :session :height 800
+#+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/msa_tsnr_roi.png :session :height 800
 
-#ggplot(all_vecs_seslong |> filter(roi %in% c('V4','Aon','Tub'))) + aes(x=roi,y=b0) + geom_violin() + theme_bw()
-ggplot(all_vecs_seslong |> filter(roi %in% c('V4','Aon','Tub'))) + aes(x=as.factor(round(msa)),y=as.factor(round(tsnr)), color=roi) + geom_jitter() + theme_bw()
+                                        #ggplot(all_vecs_seslong |> filter(roi %in% c('V4','AON','Tub'))) + aes(x=roi,y=b0) + geom_violin() + theme_bw()
+                                        #ggplot(all_vecs_seslong |> filter(roi %in% c('V4','AON','Tub'))) + aes(x=as.factor(round(msa)),y=as.factor(round(tsnr)), color=roi) + geom_jitter() + theme_bw()
+avsl_pd <- all_vecs_seslong |>
+  filter(roi %in% c('V4','AON','Tub'),  # not PirF or PirT
+         sess %in% c('1','2') # not 3d1
+         ) |>
+  transmute(i,sess,
+            msa=as.factor(round(msa)),
+            tsnr=as.factor(round(tsnr)),
+                                        # refactor to subset and reorder
+            roi=factor(as.character(roi), levels=c("AON","V4","Tub"))) |>
+  pivot_longer(-c('roi','i','sess'))
 
+avsl_cnt <- avsl_pd |>
+  # remove angle at 0. problem with 0 as NA in masking?
+  # percents are low. presumably b/c they're getting discarded erronously somehwere?
+  # but why not totally zer (is the case for tsnr sub-1)
+  filter(value!=0) |>
+  count(name,sess,roi,value) |>
+  group_by(name,roi,sess) |>
+  mutate(prct=n/sum(n)*100,
+         is_max=prct==max(prct,na.rm=T))
+p_avsl <- ggplot(avsl_cnt) +
+  aes(x=value, y=prct, fill=name, color=is_max) +
+  geom_bar(stat='identity',position='dodge') +
+  facet_grid(sess~roi) +
+  scale_color_manual(values=c("#ffffff00","#000000"), guide="none") +
+  theme_bw() +
+  theme(panel.grid=element_blank()) +
+  labs(x='ɸ', y='% ROI  in argmax(ɸ)', color='Measure')
+print(p_avsl)
 #+end_src
 
 #+RESULTS:
-[[file:Figures/orgmode/maxangle/b0_by_.png]]
+[[file:Figures/orgmode/maxangle/msa_tsnr_roi.png]]
+
+
+#+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/msa_tsnr_roi_brain.png :session :width 400
+color_angle_df <- data.frame(value=as.numeric(names(angle_colors_div)), # merge to nii on this
+                             color=angle_colors_div, # fill color
+                             # aes to use for fill
+                             phi=factor(names(angle_colors_div), levels=names(angle_colors_div)))
+
+msa_roi_only <- mt_nii$msa_1
+msa_roi_only[roi_3d == 0|t1_crop == 0] <- NA
+
+tsnr_roi_only <- mt_nii$tsnr_1
+tsnr_roi_only[!roi_3d != 0] <- NA
+
+t1_crop <- t1; t1_crop[t1<150] <- 0
+
+roi_label_color <- data.frame(value=c(        5,    1,    4, 1+10,2+10,3+10),
+                              label=factor(c('V4','AON','Tub','GM','WM','CSF'), levels=c('V4','AON','Tub','GM','WM','CSF')),
+                              color=scales::hue_pal()(6))
+roi_colors <- roi_label_color$color; names(roi_colors) <- roi_label_color$label
+
+p_brain_msa_1 <- ggbrain(bg_color="white", text="black") +
+  images(list(underlay = t1_crop)) +
+  images(list(phi = mt_nii$msa_1), labels=color_angle_df) +
+  images(list(roi_phi = msa_roi_only), labels=color_angle_df) +
+  images(list(roi = roi_3d), labels=roi_label_color) +
+  slices(c("x=28", "z=7")) +
+  geom_brain("underlay", mapping=aes(fill=value, alpha=1)) +
+  geom_brain("phi[underlay>0]",
+     mapping=aes(fill=phi),
+     fill_scale = scale_fill_manual("ɸ", values=angle_colors_div, guide="none"),
+     alpha=.3) +
+  geom_brain("roi_phi",
+     mapping=aes(fill=phi),
+     fill_scale = scale_fill_manual("ɸ", values=angle_colors_div, guide="none" ),
+     alpha=1) +
+  geom_region_label_repel(image="roi",label_column="label",color='black', size=3, force=1.5,force_pull=0) +
+  render() +
+  ggtitle("MSA") + theme(plot.title=element_text(hjust=-1, color="#F8766D"))
+ ,#+ labs(title="MSA"))
+
+p_brain_tsnr_1 <- ggbrain(bg_color="white", text="black") +
+  images(list(underlay = t1_crop)) +
+  images(list(phi = mt_nii$tsnr_1), labels=color_angle_df) +
+  images(list(roi_phi = tsnr_roi_only), labels=color_angle_df) +
+  images(list(roi = roi_3d), labels=roi_label_color) +
+  slices(c("x=28", "z=7")) +
+  geom_brain("underlay", mapping=aes(fill=value, alpha=1)) +
+  geom_brain("phi",
+     mapping=aes(fill=phi),
+     fill_scale = scale_fill_manual("ɸ", values=angle_colors_div, guide="none"),
+     alpha=.3) +
+  geom_brain("roi_phi",
+     mapping=aes(fill=phi),
+     fill_scale = scale_fill_manual("ɸ", values=angle_colors_div, guide="none"),
+     alpha=1) +
+  geom_region_label_repel(image="roi",label_column="label",color='black', size=3, force=1.5,force_pull=1.5) +
+  render() +
+  ggtitle("tSNR") + theme(plot.title=element_text(hjust=-1, color="#00BFC4"))
+ # + labs(title="tSNR")
+
+
+p_brain_msa_tsnr_1 <- (p_brain_msa_1  / p_brain_tsnr_1)
+print(p_brain_msa_tsnr_1)
+#+end_src
+
+#+RESULTS:
+[[file:Figures/orgmode/maxangle/msa_tsnr_roi_brain.png]]
+
+
+*** Combined
+
+#+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/msa_vs_tsnr.png :session :width 11.5 :height 10 :units in :res 300
+msa_tsnr_b0_cor <- compare_cors_df[cor_df_subset,cor_df_subset]; msa_tsnr_b0_cor_r <- msa_tsnr_b0_cor
+msa_tsnr_b0_cor[lower.tri(msa_tsnr_b0_cor, diag=T)] <- NA
+msa_tsnr_b0_cor_r[upper.tri(msa_tsnr_b0_cor_r, diag=T)] <- NA
+melt_cor <- function(x)
+  x |> reshape2::melt() |>
+    #filter(!is.na(value))|>
+    mutate(Var1=factor(Var1,levels=rev(colnames(msa_tsnr_b0_cor))),
+           Var2=factor(Var2,levels=colnames(msa_tsnr_b0_cor))) |>
+    arrange(Var1, Var2)
+
+cor_for_shapes <- melt_cor(msa_tsnr_b0_cor)
+cor_for_text <- msa_tsnr_b0_cor_r |> melt_cor() |>
+  mutate(sign=as.factor(sign(value)), text_size=abs(value)/2 ,
+         annote = grepl('tsnr',paste0(Var1,Var2)) & grepl('msa',paste0(Var1,Var2)))
+
+mtbc_p <- cor_for_shapes |>
+  ggplot()+
+  aes(y=Var1,x=Var2, fill=value, size=abs(value), label=value) +
+  geom_point(shape=21,stroke=0) +
+  scale_radius(guide="none", range=c(3,18), limits=c(0,1)) +
+  #ggforce::geom_circle() +
+  geom_text(aes(size=text_size, color=sign, alpha=abs(value)), data=cor_for_text, vjust=0, hjust=0) +
+  ggforce::geom_mark_rect(aes(group=annote, label=NULL), color='black', size=1, fill=NULL, expand=.1, position=position_nudge(x=.15,y=.1), alpha=.8,
+                          data=cor_for_text|>filter(!is.na(value), annote))+
+#  annotate("rect", xmin=2, xmax=4, ymin=1,ymax=2, color='black', fill=NULL, size=2) +
+  theme_minimal() +
+  scale_color_manual(values=c('blue','red'), guide="none") +
+  scale_alpha_continuous(range=c(.5,1), guide="none") +
+  #scale_color_distiller(palette='RdBu',limits=c(1,-1), guide="none") + #palette="RdBu") +
+  scale_fill_distiller(palette='RdBu', limits=c(-1,1))+
+  theme(panel.grid=element_blank(), axis.text.y = element_text(angle=90))+
+  labs(fill="r", y="",x="")
+print(mtbc_p)
+
+
+(p_brain_msa_1  | p_brain_tsnr_1) / ( (p_avsl+guides(fill="none")) | mtbc_p)
+#+end_src
+
+#+RESULTS:
+[[file:Figures/orgmode/maxangle/msa_vs_tsnr.png]]
 
 ** TODO B0 against max tsnr all voxels
 
@@ -779,7 +955,7 @@ ggplot(all_vecs_seslong |> filter(roi %in% c('V4','Aon','Tub'))) + aes(x=as.fact
 
 ** tSNR for ROIs
 #+begin_src R :session :results verbatim
-all_vecs|>mutate(i=1:n())|>merge(roi_vec|>filter(roi %in% c('Aon','V4')),by='i',all=F) %>% split(as.character(.$roi)) |> lapply(\(x) x|>select(msa_1,tsnr_1,b0_1,msa_2,tsnr_2,b0_2)|>cor(use='pairwise.complete.obs'))
+all_vecs|>mutate(i=1:n())|>merge(roi_vec|>filter(roi %in% c('AON','V4')),by='i',all=F) %>% split(as.character(.$roi)) |> lapply(\(x) x|>select(msa_1,tsnr_1,b0_1,msa_2,tsnr_2,b0_2)|>cor(use='pairwise.complete.obs'))
 #+end_src
 
 #+RESULTS:

@@ -17,6 +17,7 @@ msa_angles <- c(-40, -33, -27, -20, -13, -7, 0, 7, 13, 20)
 
 # diverging color scheme. here to use for consistancy elsewhere
 angle_colors_div <- scales::pal_div_gradient(low="red",mid="green",high="blue")(scales::rescale(msa_angles))
+names(angle_colors_div) <- msa_angles
 # c("#FF0000", "#EA7200", "#D29E00", "#ABC900", "#65EF00", "#4FE947", "#78B785", "#7C85B2", "#6A57D6", "#0000FF")
 # also see: scales::show_col(angle_colors_div)
 
