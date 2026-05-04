@@ -474,7 +474,7 @@ Is the ~a10~ sequence representative? Does the epi intensity relate to tSNR?
 Means are generated after fmriprep. see [[file:AngleCompare/02d_mean.bash]] for rest and [[file:AngleCompare/02c_mni_warp.bash]] for a10
 
 #+begin_src R :session :results none
-source('../msa_funcs.R')
+source('./msa_funcs.R') # msa_angles, rest_subj_angle, niifile_vec
 
 # all resting state means from 02d
 niilist <- Sys.glob('Data/preproc/bids-*/fmriprep-25.2.3/sub-*/func/sub-*_task-rest*_space-MNI152NLin2009cAsym_desc-mean_bold.nii.gz')
@@ -490,7 +490,7 @@ dimnames(niilist_all_cor)[[1]] <-names(niilist)
 dimnames(niilist_all_cor)[[2]] <-names(niilist)
 #+end_src
 
-Averge whole-brain voxel-to-voxel BOLD intensity within visit correlation
+Average whole-brain voxel-to-voxel BOLD intensity within visit correlation
   * high between angles.
   * across particiapnt has low voxel-to-voxel mean correlation. (MNI warped)
      * ~sub-1~ 3dEPI more correlated to ~sub-1~ 2D than ~sub-2~
@@ -520,7 +520,6 @@ ggplot(rest_mean_df) +
 
 #+RESULTS:
 [[file:Figures/orgmode/rest_mean_correlatons.png]]
-
 ** explode angles (functions)
 Code to pull out each of the single volume angle acquisitions built into ~n40p20~
 #+begin_src R :session :results none
@@ -531,7 +530,7 @@ a10list <- Sys.glob('Data/preproc/bids-*/fmriprep-25.2.3/sub-*/func/sub-*n40p20*
                                         # name by BIDS sub
 stopifnot(length(a10list) == 3)
 
-angle_vals <- c(-40, -33, -27, -20, -13, -7, 0, 6, 13, 20)
+angle_vals <- msa_angles # c(-40, -33, -27, -20, -13, -7, 0, 7, 13, 20) # 20260503-use msa_funcs.R msa_angles
 a10explode <- function(a10file) {
                                         #a10file <- a10list[[1]]
   subj <- stringr::str_extract(a10file,'(?<=sub-)[^/_]+')
@@ -573,10 +572,8 @@ Relation between the single volume angle acqusition and
 a10_vecs <- do.call(c, lapply(a10list, a10explode))
 names(a10_vecs)
 names(niilist)
-
-
-setdiff(names(niilist), names(a10_vecs)) # a10 has all names niilist has
-setdiff(names(a10_vecs), names(niilist)) # niilist missing: "1iso3d_-27" "1iso3d_-20" "1iso3d_-7"  "1iso3d_0"   "1iso3d_6"
+setdiff(names(a10_vecs), names(niilist)) # niilist missing what wasn't collected: "1iso3d_-27" "1iso3d_-20" "1iso3d_-7"  "1iso3d_0"   "1iso3d_6"
+stopifnot(setdiff(names(niilist), names(a10_vecs)) == c())  # but a10 should have eveything (and more) in niilist
 
 tsnrlist <- Sys.glob("Data/tsnr/*/sub-*_task-rest*_tsnr.nii.gz")
 tsnr_id_angle <- rest_subj_angle(niilist)
@@ -599,10 +596,10 @@ Per whole brain voxelwise correations at each angle for each measure (a10/n40p20
 #+begin_src R :session :results graphics file :file Figures/orgmode/rest_a10_correlatons.png
 
 between_acq_cors <- lapply(names(niilist), \(n){
-  data.frame(a10=a10_vecs[[n]],
+  data.frame(msa=a10_vecs[[n]],
              mean_rest=rest_means[[n]],
              tsnr_rest=rest_tsnr[[n]],
-             b0=(if(n %in% names(b0s_vecs)) b0s_vecs[[n]] else NA)
+             B0=(if(n %in% names(b0s_vecs)) b0s_vecs[[n]] else NA)
                                         # TODO
                                         # b0, spin-echo b0, sd
              ) |> cor_melt(n)})|>
@@ -610,15 +607,14 @@ between_acq_cors <- lapply(names(niilist), \(n){
   separate(from, c('subj','angle'), sep="_") |>
   mutate(angle=as.numeric(angle))
 
-between_acq_cors|>
-                                        #filter(Var1=='a10') |>
+between_acq_cors |> #filter(Var1=='a10') |>
   ggplot()+
   aes(x=angle, y=value, color=subj) +
   geom_smooth(alpha=.2, aes(group=paste(subj,Var1,Var2)),method='lm') +
   geom_point() +
   theme_minimal() +
   facet_grid(Var1~Var2) +
-  labs(title="Relation between mean rest and per volume a10", y="voxelwise correlation", x="Acq. Angle")
+  labs(title="Relation between mean rest and MSA(ɸ)", y="Voxelwise Correlation", x="Acq. Angle")
 #+end_src
 
 #+RESULTS:
@@ -644,55 +640,58 @@ Then correlate angle to voxelwise across the whole brain between tSNR and a10 ma
 **Suprprsingly(?)**,  voxelwise angle-at-maxium for tSNR is neither highly correlated with angle of highest (single volume) bold magnitude nor estimated B0 values.
 # [[./AngleCompare/images/a10_plane.png]]
 
-** TODO If not mean, then SD
+** Correlation
 
 
 Correlations between acquisitions extracted from [[file:AngleCompare/03a_tsnr_cmp.R]]
-#+begin_src R :session :colnames yes :rownames yes
+#+begin_src R :session :results none
 #angle_cut <- function(x) cut(as.vector(x),breaks=c(-Inf,-7,7, Inf)) |> as.numeric()
 mni_mask <- readNifti('AngleCompare/mni_brainmask.nii.gz')
 
 images_to_cor <- list(
+  # maxangle's use a10 processed with bespoke reslice+fugue. NB. sub-1 n40p20 fmriprep has no FM correction. others look bad
   msa_1='AngleCompare/maxangle_mni/sub-1_angleatmax-n40p20_subset5.nii.gz',
   msa_2='AngleCompare/maxangle_mni/sub-2_angleatmax-n40p20_subset5.nii.gz',
   # ERROR!! starts at 0 instead of -20
   #msa_s1_3d = 'AngleCompare/maxangle_mni/sub-1_ses-iso3d_a10_space-MNI_maxangle.nii.gz',
-  msa_1_3d = 'AngleCompare/maxangle_mni/sub-1e3d_a10_space-MNI_maxangle.nii.gz',
+  msa_3d1 = 'AngleCompare/maxangle_mni/sub-1e3d_a10_space-MNI_maxangle.nii.gz',
 
   b0_1='AngleCompare/maxangle_mni/sub-1_space-MNI152NLin2009cAsym_fmapDirect.nii.gz',
   b0_2='AngleCompare/maxangle_mni/sub-2_space-MNI152NLin2009cAsym_fmapDirect.nii.gz',
-  b03d_1='AngleCompare/maxangle_mni/sub-1iso3d_space-MNI152NLin2009cAsym_fmapDirect.nii.gz',
+  b0_3d1='AngleCompare/maxangle_mni/sub-1iso3d_space-MNI152NLin2009cAsym_fmapDirect.nii.gz',
 
   tsnr_1='AngleCompare/maxangle_mni/sub-1_select-n40n33n13p13p20_angleatmax-tsnr.nii.gz',
   tsnr_2='AngleCompare/maxangle_mni/sub-2_select-n40n33n13p13p20_angleatmax-tsnr.nii.gz',
-  tsnr_1_3d = 'AngleCompare/maxangle_mni/3depi2x2x2/sub-1iso3d_angleatmax-tsnr.nii.gz',
+  tsnr_3d1 = 'AngleCompare/maxangle_mni/3depi2x2x2/sub-1iso3d_angleatmax-tsnr.nii.gz',
 
   sd_1='AngleCompare/maxangle_mni/sub-1_select-n40n33n13p13p20_angleatmax-sd.nii.gz',
   sd_2='AngleCompare/maxangle_mni/sub-2_select-n40n33n13p13p20_angleatmax-sd.nii.gz',
-  sd_1_3d='AngleCompare/maxangle_mni/sub-1iso3d_select-n40n33n13p13p20_angleatmax-sd.nii.gz')
+  sd_3d1='AngleCompare/maxangle_mni/sub-1iso3d_select-n40n33n13p13p20_angleatmax-sd.nii.gz')
 
-compare_cors_df <- do.call(data.frame,
-			   lapply(images_to_cor,
-                                  function(img){ m<-readNifti(img); m[mni_mask==0]<-NA; as.vector(m); }) ) |>
-    cor(use='pairwise.complete.obs') |>
-    round(3)
+all_vecs <- do.call(data.frame,
+                    lapply(images_to_cor,
+                           function(img){ m<-readNifti(img); m[mni_mask==0]<-NA; as.vector(m); }) )
+#+end_src
+
+#+begin_src R :session :colnames yes :rownames yes
+compare_cors_df <- cor(all_vecs,use='pairwise.complete.obs') |> round(3)
 #+end_src
 
 #+RESULTS:
-|           |  msa_1 |  msa_2 | msa_1_3d |   b0_1 |   b0_2 | b03d_1 | tsnr_1 | tsnr_2 | tsnr_1_3d |   sd_1 |   sd_2 | sd_1_3d |
-|-----------+--------+--------+----------+--------+--------+--------+--------+--------+-----------+--------+--------+---------|
-| msa_1     |      1 |  0.529 |    0.411 |   -0.3 | -0.286 | -0.272 |  0.158 |   0.09 |    -0.099 |  0.039 |  0.029 |  -0.026 |
-| msa_2     |  0.529 |      1 |    0.385 |  -0.33 | -0.314 | -0.308 |  0.155 |   0.14 |    -0.087 |  0.059 |  0.032 |  -0.018 |
-| msa_1_3d  |  0.411 |  0.385 |        1 | -0.419 | -0.379 | -0.242 |  0.153 |  0.131 |     -0.19 |  0.071 |   0.09 |  -0.103 |
-| b0_1      |   -0.3 |  -0.33 |   -0.419 |      1 |  0.829 |  0.859 | -0.192 |  -0.18 |    -0.014 | -0.097 | -0.122 |    0.04 |
-| b0_2      | -0.286 | -0.314 |   -0.379 |  0.829 |      1 |  0.672 | -0.129 | -0.114 |     0.099 | -0.052 | -0.025 |   0.018 |
-| b03d_1    | -0.272 | -0.308 |   -0.242 |  0.859 |  0.672 |      1 | -0.163 | -0.148 |    -0.116 | -0.054 |  -0.08 |  -0.044 |
-| tsnr_1    |  0.158 |  0.155 |    0.153 | -0.192 | -0.129 | -0.163 |      1 |  0.163 |     0.073 |  0.287 |  0.138 |  -0.024 |
-| tsnr_2    |   0.09 |   0.14 |    0.131 |  -0.18 | -0.114 | -0.148 |  0.163 |      1 |     0.039 |  0.096 |  0.303 |   0.019 |
-| tsnr_1_3d | -0.099 | -0.087 |    -0.19 | -0.014 |  0.099 | -0.116 |  0.073 |  0.039 |         1 |  0.024 |  0.041 |  -0.145 |
-| sd_1      |  0.039 |  0.059 |    0.071 | -0.097 | -0.052 | -0.054 |  0.287 |  0.096 |     0.024 |      1 |  0.171 |  -0.066 |
-| sd_2      |  0.029 |  0.032 |     0.09 | -0.122 | -0.025 |  -0.08 |  0.138 |  0.303 |     0.041 |  0.171 |      1 |  -0.033 |
-| sd_1_3d   | -0.026 | -0.018 |   -0.103 |   0.04 |  0.018 | -0.044 | -0.024 |  0.019 |    -0.145 | -0.066 | -0.033 |       1 |
+|          |  msa_1 |  msa_2 | msa_3d1 |   b0_1 |   b0_2 | b0_3d1 | tsnr_1 | tsnr_2 | tsnr_3d1 |   sd_1 |   sd_2 | sd_3d1 |
+|----------+--------+--------+---------+--------+--------+--------+--------+--------+----------+--------+--------+--------|
+| msa_1    |      1 |  0.529 |   0.411 |   -0.3 | -0.286 | -0.272 |  0.158 |   0.09 |   -0.099 |  0.039 |  0.029 | -0.026 |
+| msa_2    |  0.529 |      1 |   0.385 |  -0.33 | -0.314 | -0.308 |  0.155 |   0.14 |   -0.087 |  0.059 |  0.032 | -0.018 |
+| msa_3d1  |  0.411 |  0.385 |       1 | -0.419 | -0.379 | -0.242 |  0.153 |  0.131 |    -0.19 |  0.071 |   0.09 | -0.103 |
+| b0_1     |   -0.3 |  -0.33 |  -0.419 |      1 |  0.829 |  0.859 | -0.192 |  -0.18 |   -0.014 | -0.097 | -0.122 |   0.04 |
+| b0_2     | -0.286 | -0.314 |  -0.379 |  0.829 |      1 |  0.672 | -0.129 | -0.114 |    0.099 | -0.052 | -0.025 |  0.018 |
+| b0_3d1   | -0.272 | -0.308 |  -0.242 |  0.859 |  0.672 |      1 | -0.163 | -0.148 |   -0.116 | -0.054 |  -0.08 | -0.044 |
+| tsnr_1   |  0.158 |  0.155 |   0.153 | -0.192 | -0.129 | -0.163 |      1 |  0.163 |    0.073 |  0.287 |  0.138 | -0.024 |
+| tsnr_2   |   0.09 |   0.14 |   0.131 |  -0.18 | -0.114 | -0.148 |  0.163 |      1 |    0.039 |  0.096 |  0.303 |  0.019 |
+| tsnr_3d1 | -0.099 | -0.087 |   -0.19 | -0.014 |  0.099 | -0.116 |  0.073 |  0.039 |        1 |  0.024 |  0.041 | -0.145 |
+| sd_1     |  0.039 |  0.059 |   0.071 | -0.097 | -0.052 | -0.054 |  0.287 |  0.096 |    0.024 |      1 |  0.171 | -0.066 |
+| sd_2     |  0.029 |  0.032 |    0.09 | -0.122 | -0.025 |  -0.08 |  0.138 |  0.303 |    0.041 |  0.171 |      1 | -0.033 |
+| sd_3d1   | -0.026 | -0.018 |  -0.103 |   0.04 |  0.018 | -0.044 | -0.024 |  0.019 |   -0.145 | -0.066 | -0.033 |      1 |
 
 #+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/correlatons.png
 pacman::p_load(corrplot)
@@ -702,6 +701,95 @@ title("Voxelwise correlation between datasets")
 
 #+RESULTS:
 [[file:Figures/orgmode/maxangle/correlatons.png]]
+
+** subset of cors
+
+#+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/msa_b0_correlations.png
+pacman::p_load(corrplot)
+cor_df_subset <- c('msa_1','msa_2','tsnr_1','tsnr_2', 'b0_1','b0_2')
+compare_cors_df[cor_df_subset,cor_df_subset] |> corrplot.mixed() #, order='AOE')
+title("Voxelwise correlation argmax MSA(ɸ), tSNR, GRE ΔB0")
+#+end_src
+
+#+RESULTS:
+[[file:Figures/orgmode/maxangle/msa_b0_correlations.png]]
+
+** Within ROI
+
+** TODO B0 against max tsnr all voxels
+
+#+begin_src R :session :colnames yes
+roi_vec <- data.frame(roi=readNifti('./Olfactory/atlas-AonPirFTTubV4_res-func.nii.gz') |> as.vector()) |>
+  mutate(i=1:n()) |>
+  filter(roi>0) |>
+  mutate(roi=factor(roi, levels=1:5, labels=c('Aon','PirF','PirT','Tub','V4')))
+
+roi_vec |> count(roi)
+#+end_src
+
+#+RESULTS:
+| roi  |    n |
+|------+------|
+| Aon  | 3438 |
+| PirF | 3411 |
+| PirT | 9320 |
+| Tub  | 1608 |
+| V4   |  770 |
+
+#+begin_src R :session :results none
+# This is a very slow and memory intensive way to get row per voxel+ses. Should just go back and combine individually
+all_vecs_seslong <- all_vecs |>
+  select(matches('msa|b0|tsnr|sd')) |>
+  mutate(i=1:n()) |>
+  pivot_longer(matches('msa|b0|tsnr|sd'))|>
+  separate(name, c('data','sess')) |>
+  pivot_wider(names_from='data',values_from='value') |>
+  filter(!is.na(msa)) |>
+  merge(roi_vec, by='i', all.x=T)
+
+# need cbind and rbind. not finished here
+#nii_vec_df <- function(f) data.frame(value=niifile_vec(f, mask=mni_mask)) |> mutate(i=1:n())
+#all_vecs_2 <- rbind(
+#  nii_vec_df(images_to_cor$msa_1  )|>mutate(measure='msa', sess='1'),
+#  nii_vec_df(images_to_cor$msa_2  )|>mutate(measure='msa', sess='2'),
+#  nii_vec_df(images_to_cor$msa_3d1)|>mutate(measure='msa', sess='3d1'),
+#  nii_vec_df(images_to_cor$b0_1  )|>mutate(measure='b0', sess='1'),
+#  nii_vec_df(images_to_cor$b0_2  )|>mutate(measure='b0', sess='2'),
+#  nii_vec_df(images_to_cor$b0_3d1)|>mutate(measure='b0', sess='3d1'),
+#  nii_vec_df(images_to_cor$tsnr_1  )|>mutate(measure='tsnr', sess='1'),
+#  nii_vec_df(images_to_cor$tsnr_2  )|>mutate(measure='tsnr', sess='2'),
+#  nii_vec_df(images_to_cor$tsnr_3d1)|>mutate(measure='tsnr', sess='3d1')) |>
+#  merge(roi_vec,by='i', all.x=T)
+#+end_src
+
+#+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/b0_by_.png :session :height 800
+
+#ggplot(all_vecs_seslong |> filter(roi %in% c('V4','Aon','Tub'))) + aes(x=roi,y=b0) + geom_violin() + theme_bw()
+ggplot(all_vecs_seslong |> filter(roi %in% c('V4','Aon','Tub'))) + aes(x=as.factor(round(msa)),y=as.factor(round(tsnr)), color=roi) + geom_jitter() + theme_bw()
+
+#+end_src
+
+#+RESULTS:
+[[file:Figures/orgmode/maxangle/b0_by_.png]]
+
+** TODO B0 against max tsnr all voxels
+
+
+** TODO max angle for rois
+
+** tSNR for ROIs
+#+begin_src R :session :results verbatim
+all_vecs|>mutate(i=1:n())|>merge(roi_vec|>filter(roi %in% c('Aon','V4')),by='i',all=F) %>% split(as.character(.$roi)) |> lapply(\(x) x|>select(msa_1,tsnr_1,b0_1,msa_2,tsnr_2,b0_2)|>cor(use='pairwise.complete.obs'))
+#+end_src
+
+#+RESULTS:
+: 1	0.324194167999917	-0.459049710953947	0.516726972401157	0.251693947318751	-0.450709584636922	1	0.0182944828844194	0.012852475562226	0.211026641942029	-0.130433040798616	-0.280122776992786
+: 0.324194167999917	1	-0.421542705750849	0.391570892020385	0.348429752013933	-0.412643495532563	0.0182944828844194	1	0.166084150054849	-0.0223923835277279	0.149508575855261	-0.079607423217651
+: -0.459049710953947	-0.421542705750849	1	-0.601620877368868	-0.430340885801246	0.950312172339317	0.012852475562226	0.166084150054849	1	0.10160390515355	-0.0631205523683854	-0.211028107132727
+: 0.516726972401157	0.391570892020385	-0.601620877368868	1	0.402365133585315	-0.589694764079406	0.211026641942029	-0.0223923835277279	0.10160390515355	1	-0.139723656828431	-0.395828486577203
+: 0.251693947318751	0.348429752013933	-0.430340885801246	0.402365133585315	1	-0.40132807221863	-0.130433040798616	0.149508575855261	-0.0631205523683854	-0.139723656828431	1	0.231798624270031
+: -0.450709584636922	-0.412643495532563	0.950312172339317	-0.589694764079406	-0.40132807221863	1	-0.280122776992786	-0.079607423217651	-0.211028107132727	-0.395828486577203	0.231798624270031	1
+
 ** Original abstract figure
 [[file:AngleCompare/03a_tsnr_cmp.R]] 
   * ~./maxangle_mni/sub-1_space-MNI152NLin2009cAsym_fmap.nii.gz~
@@ -714,6 +802,180 @@ title("Voxelwise correlation between datasets")
 #+NAME: fig-tsnrb0
 #+CAPTION: coronal slices showing tSNR and B0
 [[./Figures/anat_tsnr_b0_mni.png]]
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 * 3D GRE
 
@@ -724,6 +986,37 @@ Input 3D GRE ~Data/20260114BOLDSlcAng1//DICOM/3DT2SGRE_R3X1_RR_0038.nii~ downsam
 
 [[./GRE3D/04_comb_angle.m]] compares simulated rotations and downsampling. Little change.
 [[./GRE3D/figures/gre3d_ds_corr.png]]
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
  
  
  
@@ -859,6 +1152,34 @@ print(p_tsnr_both)
  
  
  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 #+begin_src R :session :results output
  tsnr_min <- apply(tsnr,c(1:3),min,na.rm=T) |> asNifti(tsnr)
  tsnr_max <- apply(tsnr,c(1:3),max,na.rm=T)|> asNifti(tsnr)
@@ -911,6 +1232,23 @@ p_3depiiso|>render() |> print()
  
  
  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 #+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/a10-5.png
 mxangle_a10_5_sub1 <- readNifti("AngleCompare/maxangle_mni/sub-1_select-n40n33n13p13p20_angleatmax-tsnr.nii.gz")
 mxangle_a10_5_sub1[t1<50] <- NA
@@ -932,6 +1270,23 @@ p_a10_5|>render() + labs(title="2d EPI best angle") |> print()
 
 #+RESULTS:
 [[file:Figures/orgmode/maxangle/a10-5.png]]
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
  
  
  
@@ -1011,6 +1366,23 @@ p_dseg + render() + labs(title="GM, WM, CSF Segmentation") |> print()
  
  
  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 #+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/dseg_hist.png
 dseg_df <- list(
     data.frame(seg="csf", data="3d", maxangle=mxangle[dseg==3]),
@@ -1064,6 +1436,23 @@ print(dseg_by_acq)
  
  
  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 #+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/3d_a10_side.png :width 800
 plot_grid(plot_grid(p_a10_5 + render() , p_3depiiso+render(), nrow=2),
@@ -1072,6 +1461,23 @@ plot_grid(plot_grid(p_a10_5 + render() , p_3depiiso+render(), nrow=2),
 
 #+RESULTS:
 [[file:Figures/orgmode/maxangle/3d_a10_side.png]]
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
  
  
  
