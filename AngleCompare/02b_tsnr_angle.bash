@@ -41,6 +41,16 @@ mkmxtsnr(){
 #  02_tsnr.bash makes e.g. ../Data/tsnr/a10/sub-2_task-restn6_xcpd_tsnr.nii.gz
 #  from home/boldsliceangle/BOLDSliceAngle/Data/preproc/bids-a10/xcpd-ver-0.12.0_prep-25.2.3_type-nifti_fd-0.3_bp-yes/sub-2/func/sub-2_task-rest20_space-MNI152NLin2009cAsym_desc-denoisedSmoothed_bold.nii.gz
 
+file_in_order(){
+ i=0
+ for f in $@; do
+   [ ! -r $f ] && continue
+   echo $f
+   let i++
+ done
+ [ $i -ne 5 -a $i -ne 10 ] && echo "WARNING: have $i/$# readable files in '$*'" >&2
+}
+
 #
 # cf. ../FmapCorrect/angle.txt
 a10txt=./maxangle_mni_angless10.txt
@@ -51,8 +61,8 @@ mkdir -p maxangle_mni/xcpd
 for prefix in ../Data/tsnr/a10/sub-{1,2} ../Data/tsnr/3depi2x2x2/sub-1iso3d; do
   sub=$(basename $prefix)
   # mksd maxangle_mni/${sub}_select-n40n33n13p13p20_angleatmax-sd.nii.gz $prefix/*xcpd*res*{n40,n39,n33,n13,[^n]13,[^n]20}_sd.nii.gz
-  mkmxtsnr ./maxangle_mni/xcpd/${sub}_anglemax-tsnr.nii.gz $(ls $prefix*{n40,n39,n33,n27,n26,n20,n13,n6,n7,[^n0-9]0,[^n]6,[^n]7,[^n]13,[^n]20}*xcpd_tsnr.nii.gz)
-  mkmxtsnr ./maxangle_mni/xcpd/${sub}_select-n40n33n13p13p20_anglemax-tsnr.nii.gz $(ls $prefix*{n40,n39,n33,n13,[^n]13,[^n]20}*_xcpd_tsnr.nii.gz)
+  mkmxtsnr ./maxangle_mni/xcpd/${sub}_anglemax-tsnr.nii.gz $(file_in_order $prefix*{n40,n39,n33,n27,n26,n20,n13,n6,n7,[^n0-9]0,[^n]6,[^n]7,[^n]13,[^n]20}*xcpd_tsnr.nii.gz)
+  mkmxtsnr ./maxangle_mni/xcpd/${sub}_select-n40n33n13p13p20_anglemax-tsnr.nii.gz $(file_in_order $prefix*{n40,n39,n33,n13,[^n]13,[^n]20}*_xcpd_tsnr.nii.gz)
 
 done
 
