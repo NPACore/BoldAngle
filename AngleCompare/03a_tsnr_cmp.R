@@ -53,8 +53,11 @@ pdata <- lapply(1:3,
 #   angle  subj tsnr_mean  nnz dim source  i
 # 1     0 sub-1  42.42200 4048   x   tsnr 23
 # 2     0 sub-1  42.27144 4115   x   tsnr 24
-gre_b0s_fnames <- Sys.glob('./maxangle_mni/sub-*_space-MNI152NLin2009cAsym_fmap.nii.gz')
-gre_b0s <- lapply(gre_b0s_fnames, \(f) { x<-readNIfTI(f); x[mni_mask==0]<-NA;return(x)})
+gre_b0s_fnames <- Sys.glob('./maxangle_mni/sub-*_space-MNI152NLin2009cAsym_fmap.nii.gz')  |> grep(pattern='sub-[12]_space',value=T)
+# 20260504 - exclude all but first "a10" set
+gre_b0s <- gre_b0s_fnames |>
+    lapply(\(f) { x<-readNIfTI(f); x[mni_mask==0]<-NA;return(x)})
+
 gre_b0_pdata <- lapply(1:3,
        \(di) lapply(seq_along(gre_b0s_fnames), dim_mean_df, xyi=di,
                     source='b0',
@@ -68,25 +71,26 @@ gre_b0_pdata <- lapply(1:3,
 # 20260502 - match colors with others
 angles_for_line <- c(20, -13, -40) # NB. -39 should be 40
 #angle_colors_div <- scales::pal_div_gradient(low="red",mid="green",high="blue")(10) # use what's defined in from msa_funcs.R
-subset_colors <- angle_colors_div[which(angles %in% angles_for_line)]
+subset_colors <- angle_colors_div[which(msa_angles %in% angles_for_line)]
+
 
 # want plot as similiar range. need fwd and reverse for scaling
 # fwd to apply to db0 so it's on the same scale as tsnr
 # rev to label the axis
+pdata_nox <- pdata |> filter(dim!='x')
+gre_b0_pdata_nox <- gre_b0_pdata |> filter(dim%in%c('y','z'), subj %in% c('sub-1','sub-2'))
 ylim.pri <- pdata_nox|>filter(angle %in% angles_for_line) |> with(range(tsnr_mean))
 ylim.sec <- range(gre_b0_pdata_nox$db0)
 ax2trans_fwd <- \(x) scales::rescale(x, from=ylim.sec,   to=ylim.pri)
 ax2trans_rev <- \(x) scales::rescale(x, to=ylim.sec,   from=ylim.pri)
+gre_b0_pdata_nox <- gre_b0_pdata_nox |> mutate(tsnr_mean=ax2trans_fwd(db0)) # kludge: tsnr_mean is in aes.
 
-gre_b0_pdata_nox <- gre_b0_pdata |>
-                 filter(dim%in%c('y','z'))|>
-                 mutate(tsnr_mean=ax2trans_fwd(db0))
-db0_color <- "purple"
 
 # where interesting things happen -- lines swap
 Y_IDX <- c(21,45,63)
 Z_IDX <- c(25,60, 65)
-pdata_nox <- pdata |> filter(dim!='x')
+# color for B0 second axis and line
+db0_color <- "purple"
 tsnr_plane <- ggplot(pdata_nox) +
     aes(x=i, y=tsnr_mean,
         color=factor(angle,levels=sort(angles_for_line)),
@@ -125,7 +129,7 @@ tsnr_plane <- ggplot(pdata_nox) +
           axis.title.y.right = element_text(color = db0_color))
 
 
-ggsave(tsnr_plane, file="images/tsnr_per_plane.png")
+ggsave(tsnr_plane, file="../Figures/tsnr_per_plane.png", width=11,height=10,units="in", dpi=300)
 
 
 
@@ -263,13 +267,15 @@ ggsave(p_fig3,
 ### 20260502 - rearrange with patchwork
 library(patchwork)
 
-(tsnr_plane +
- (tsnr_angle_y +theme_void() + # this has facet label so B0 doesn't need it
-  p_b0_y +theme_void() + theme(strip.text = element_blank()))/
- ((tsnr_angle_z + theme_void()) +
-  (p_b0_z + theme_void() + theme(strip.text = element_blank())))) +
-  plot_layout(guides = "collect") &
-  theme(legend.position = "bottom")
+tsnr_by_slice_with_brain <-
+    (tsnr_plane +
+     (tsnr_angle_y +theme_void() + # this has facet label so B0 doesn't need it
+      p_b0_y +theme_void() + theme(strip.text = element_blank()))/
+     ((tsnr_angle_z + theme_void()) +
+      (p_b0_z + theme_void() + theme(strip.text = element_blank())))) +
+    plot_layout(guides = "collect") &
+    theme(legend.position = "bottom")
+ggsave('../Figures/tsnr_by_slice_with_brain.png', width=11, height=10,dpi=300, units="in")
 
 
 
