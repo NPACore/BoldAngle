@@ -57,6 +57,23 @@ a10txt=./maxangle_mni_angless10.txt
 a5txt=./maxangle_mni_angless5.txt
 test -r $a10txt || printf "%s\n" -40 -33 -27 -20 -13 -7 0 7 13 20 | tee $a10txt
 test -r $a5txt || printf "%s\n" -40 -33 -13 13 20 | tee $a5txt
+
+# 20260504 - for missing non iso 3d (used in place of 3d)
+subset=./maxangle_mni/sub-1ni3d_task-n40p20_acq-incSUBSET_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz 
+full=../Data/preproc/bids-3depi/fmriprep-25.2.3/sub-1/func/sub-1_task-n40p20_acq-inc_space-MNI152NLin2009cAsym_desc-preproc_bold.nii.gz
+mask="../Data/preproc/bids-3depi/fmriprep-25.2.3/sub-1/func/sub-1_task-n40p20_acq-inc_space-MNI152NLin2009cAsym_desc-brain_mask.nii.gz"
+skip-exist $subset \
+  3dTcat -prefix __SKIPFILE $full'[0,1,4,8,9]'
+skip-exist ./maxangle_mni/sub-1ni3d_angleatmax-n40p20_subset5.nii.gz \
+  ../FmapCorrect/angle_at_max.py  \
+        --nosd \
+        -l ./maxangle_mni/3depi/angles.txt  \
+        -i $subset \
+        -m $mask  \
+        -o __SKIPFILE
+exit
+
+# 202605 - xcpd (FAILS - bandpassed means no mean)
 mkdir -p maxangle_mni/xcpd
 for prefix in ../Data/tsnr/a10/sub-{1,2} ../Data/tsnr/3depi2x2x2/sub-1iso3d; do
   sub=$(basename $prefix)

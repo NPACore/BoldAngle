@@ -450,6 +450,47 @@ niishow(fliplr(rot90(permute(tsnr,[3 2 1]),2)));
 #+RESULTS:
 [[file:Figures/orgmode/tsnr.png]]
 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
 Code for similiar in R
 #+begin_src R :session
 a10_rest_f <- Sys.glob('../Data/preproc/fmriprep-25.2.3/sub-*/func/sub-*_task-rest*_space-MNI152NLin2009cAsym_desc-mean_bold.nii.gz')
@@ -458,6 +499,20 @@ tsnr_range <- oro.nifti::readNIfTI('./maxangle_mni/tsnr-range.nii.gz')@.Data
 #+end_src
 * MSA sequence
 see [[file:Figures/MSA_max.svg]] which uses [[file:Figures/montage_nifit.R]] for nifti slice images.
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 Time and angle pairs used in inkscape labels. (Extension->Text->Text Split)
 #+begin_src R  :session
@@ -522,6 +577,28 @@ ggplot(rest_mean_df) +
 
 #+RESULTS:
 [[file:Figures/orgmode/rest_mean_correlatons.png]]
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 ** explode angles (functions)
 Code to pull out each of the single volume angle acquisitions built into ~n40p20~
 #+begin_src R :session :results none
@@ -621,6 +698,28 @@ between_acq_cors |> #filter(Var1=='a10') |>
 
 #+RESULTS:
 [[file:Figures/orgmode/rest_a10_correlatons.png]]
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 * tSNR of ROIs at angles (animated)
 Justification. **CITE**
@@ -655,7 +754,9 @@ images_to_cor <- list(
   msa_2='AngleCompare/maxangle_mni/sub-2_angleatmax-n40p20_subset5.nii.gz',
   # ERROR!! starts at 0 instead of -20
   #msa_s1_3d = 'AngleCompare/maxangle_mni/sub-1_ses-iso3d_a10_space-MNI_maxangle.nii.gz',
-  msa_3d1 = 'AngleCompare/maxangle_mni/sub-1e3d_a10_space-MNI_maxangle.nii.gz',
+  #msa_3d1 = 'AngleCompare/maxangle_mni/sub-1e3d_a10_space-MNI_maxangle.nii.gz',
+  # 20260504 use subset version (created with AngleCompare/02b_tsnr_angle.bash)
+  msa_3d1 = '/home/boldsliceangle/BOLDSliceAngle/AngleCompare/maxangle_mni/sub-1ni3d_angleatmax-n40p20_subset5.nii.gz',
 
   b0_1='AngleCompare/maxangle_mni/sub-1_space-MNI152NLin2009cAsym_fmapDirect.nii.gz',
   b0_2='AngleCompare/maxangle_mni/sub-2_space-MNI152NLin2009cAsym_fmapDirect.nii.gz',
@@ -681,18 +782,18 @@ compare_cors_df <- cor(all_vecs,use='pairwise.complete.obs') |> round(3)
 #+RESULTS:
 |          |  msa_1 |  msa_2 | msa_3d1 |   b0_1 |   b0_2 | b0_3d1 | tsnr_1 | tsnr_2 | tsnr_3d1 |   sd_1 |   sd_2 | sd_3d1 |
 |----------+--------+--------+---------+--------+--------+--------+--------+--------+----------+--------+--------+--------|
-| msa_1    |      1 |  0.529 |   0.411 |   -0.3 | -0.286 | -0.272 |  0.158 |   0.09 |   -0.099 |  0.039 |  0.029 | -0.026 |
-| msa_2    |  0.529 |      1 |   0.385 |  -0.33 | -0.314 | -0.308 |  0.155 |   0.14 |   -0.087 |  0.059 |  0.032 | -0.018 |
-| msa_3d1  |  0.411 |  0.385 |       1 | -0.419 | -0.379 | -0.242 |  0.153 |  0.131 |    -0.19 |  0.071 |   0.09 | -0.103 |
-| b0_1     |   -0.3 |  -0.33 |  -0.419 |      1 |  0.829 |  0.859 | -0.192 |  -0.18 |   -0.014 | -0.097 | -0.122 |   0.04 |
-| b0_2     | -0.286 | -0.314 |  -0.379 |  0.829 |      1 |  0.672 | -0.129 | -0.114 |    0.099 | -0.052 | -0.025 |  0.018 |
-| b0_3d1   | -0.272 | -0.308 |  -0.242 |  0.859 |  0.672 |      1 | -0.163 | -0.148 |   -0.116 | -0.054 |  -0.08 | -0.044 |
-| tsnr_1   |  0.158 |  0.155 |   0.153 | -0.192 | -0.129 | -0.163 |      1 |  0.163 |    0.073 |  0.287 |  0.138 | -0.024 |
-| tsnr_2   |   0.09 |   0.14 |   0.131 |  -0.18 | -0.114 | -0.148 |  0.163 |      1 |    0.039 |  0.096 |  0.303 |  0.019 |
-| tsnr_3d1 | -0.099 | -0.087 |   -0.19 | -0.014 |  0.099 | -0.116 |  0.073 |  0.039 |        1 |  0.024 |  0.041 | -0.145 |
-| sd_1     |  0.039 |  0.059 |   0.071 | -0.097 | -0.052 | -0.054 |  0.287 |  0.096 |    0.024 |      1 |  0.171 | -0.066 |
-| sd_2     |  0.029 |  0.032 |    0.09 | -0.122 | -0.025 |  -0.08 |  0.138 |  0.303 |    0.041 |  0.171 |      1 | -0.033 |
-| sd_3d1   | -0.026 | -0.018 |  -0.103 |   0.04 |  0.018 | -0.044 | -0.024 |  0.019 |   -0.145 | -0.066 | -0.033 |      1 |
+| msa_1    |      1 |  0.531 |   0.468 |   -0.3 | -0.283 | -0.272 |  0.162 |  0.092 |   -0.099 |  0.043 |  0.032 |  -0.02 |
+| msa_2    |  0.531 |      1 |   0.411 |  -0.33 | -0.311 | -0.308 |  0.159 |  0.141 |   -0.087 |  0.062 |  0.036 | -0.013 |
+| msa_3d1  |  0.468 |  0.411 |       1 | -0.273 | -0.251 | -0.148 |  0.166 |  0.137 |   -0.178 |  0.063 |  0.087 | -0.069 |
+| b0_1     |   -0.3 |  -0.33 |  -0.273 |      1 |  0.827 |  0.859 | -0.193 |  -0.18 |   -0.013 | -0.101 | -0.127 |  0.045 |
+| b0_2     | -0.283 | -0.311 |  -0.251 |  0.827 |      1 |   0.67 | -0.129 | -0.113 |    0.101 | -0.057 | -0.031 |  0.022 |
+| b0_3d1   | -0.272 | -0.308 |  -0.148 |  0.859 |   0.67 |      1 | -0.164 | -0.147 |   -0.115 | -0.058 | -0.085 | -0.037 |
+| tsnr_1   |  0.162 |  0.159 |   0.166 | -0.193 | -0.129 | -0.164 |      1 |  0.165 |    0.073 |  0.291 |  0.142 | -0.021 |
+| tsnr_2   |  0.092 |  0.141 |   0.137 |  -0.18 | -0.113 | -0.147 |  0.165 |      1 |    0.039 |  0.097 |  0.304 |   0.02 |
+| tsnr_3d1 | -0.099 | -0.087 |  -0.178 | -0.013 |  0.101 | -0.115 |  0.073 |  0.039 |        1 |  0.025 |  0.042 | -0.145 |
+| sd_1     |  0.043 |  0.062 |   0.063 | -0.101 | -0.057 | -0.058 |  0.291 |  0.097 |    0.025 |      1 |  0.173 | -0.065 |
+| sd_2     |  0.032 |  0.036 |   0.087 | -0.127 | -0.031 | -0.085 |  0.142 |  0.304 |    0.042 |  0.173 |      1 | -0.031 |
+| sd_3d1   |  -0.02 | -0.013 |  -0.069 |  0.045 |  0.022 | -0.037 | -0.021 |   0.02 |   -0.145 | -0.065 | -0.031 |      1 |
 
 #+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/correlatons.png
 pacman::p_load(corrplot)
@@ -702,6 +803,28 @@ title("Voxelwise correlation between datasets")
 
 #+RESULTS:
 [[file:Figures/orgmode/maxangle/correlatons.png]]
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 ** subset of cors
 
@@ -714,6 +837,28 @@ title("Voxelwise correlation argmax MSA(ɸ), tSNR, GRE ΔB0")
 
 #+RESULTS:
 [[file:Figures/orgmode/maxangle/msa_b0_correlations.png]]
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 ** Within ROI
 
@@ -757,7 +902,7 @@ hist(smoothed_nii$tsnr_1[roi_3d == 1], main="AON tsnr")
 #+end_src
 
 #+begin_src R :session
-mt_nii <- images_to_cor[c('msa_1','tsnr_1')] |> lapply( \(f) readNifti(f)|>round())
+mt_nii <- images_to_cor[c('msa_1','tsnr_1', 'msa_3d1','tsnr_3d1')] |> lapply( \(f) readNifti(f)|>round())
 par(mfrow=c(1,2))
 hist(mt_nii$msa_1[roi_3d == 1], main="AON msa")
 hist(mt_nii$tsnr_1[roi_3d == 1], main="AON tsnr")
@@ -834,6 +979,44 @@ print(p_avsl)
 
 #+RESULTS:
 [[file:Figures/orgmode/maxangle/msa_tsnr_roi.png]]
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 
 #+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/msa_tsnr_roi_brain.png :session :width 400
@@ -902,6 +1085,28 @@ print(p_brain_msa_tsnr_1)
 
 #+RESULTS:
 [[file:Figures/orgmode/maxangle/msa_tsnr_roi_brain.png]]
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 
 *** Combined
@@ -947,6 +1152,148 @@ print(mtbc_p)
 
 #+RESULTS:
 [[file:Figures/orgmode/maxangle/msa_vs_tsnr.png]]
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
 
 ** TODO B0 against max tsnr all voxels
 
@@ -966,10 +1313,14 @@ all_vecs|>mutate(i=1:n())|>merge(roi_vec|>filter(roi %in% c('AON','V4')),by='i',
 : 0.251693947318751	0.348429752013933	-0.430340885801246	0.402365133585315	1	-0.40132807221863	-0.130433040798616	0.149508575855261	-0.0631205523683854	-0.139723656828431	1	0.231798624270031
 : -0.450709584636922	-0.412643495532563	0.950312172339317	-0.589694764079406	-0.40132807221863	1	-0.280122776992786	-0.079607423217651	-0.211028107132727	-0.395828486577203	0.231798624270031	1
 
-** Original abstract figure
-[[file:AngleCompare/03a_tsnr_cmp.R]] 
+** tSNR by slice (abstract figure)
+[[file:AngleCompare/03a_tsnr_cmp.R]]  
   * ~./maxangle_mni/sub-1_space-MNI152NLin2009cAsym_fmap.nii.gz~
   * ~../Data/tsnr/sub-[12]_task-rest*_tsnr.nii.gz~ w/sub-1 + ~angle_from_taskname()~ & ~which.max~
+
+Look at raw tsnr for subset of angles. plot across slices
+    [[file:Figures/tsnr_by_slice_with_brain.png]]
+*** Original figure
 # #+ATTR_HTML: :width 300px
 # #+ATTR_ORG: :width 20
 # [[./AngleCompare/images/anat_tsnr_b0_mni.png]]
@@ -977,181 +1328,8 @@ all_vecs|>mutate(i=1:n())|>merge(roi_vec|>filter(roi %in% c('AON','V4')),by='i',
 #+ATTR_HTML: :width 300px
 #+NAME: fig-tsnrb0
 #+CAPTION: coronal slices showing tSNR and B0
-[[./Figures/anat_tsnr_b0_mni.png]]
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
+# [[./Figures/anat_tsnr_b0_mni.png]]
+
 
 * 3D GRE
 
@@ -1203,40 +1381,305 @@ Input 3D GRE ~Data/20260114BOLDSlcAng1//DICOM/3DT2SGRE_R3X1_RR_0038.nii~ downsam
  
  
  
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 
 [[./GRE3D/figures/2dgre_acqs.eps]]
 [[./GRE3D/figures/ifft_rotated.eps]]
+
+
+** Again in R for consistent colors
+Show simulated 3D GRE with actual 2D GRE. High correlation. limited inflow effects
+#+begin_src R :session
+                                        # bet ../nii/2DT2SGRE_R3X1_0_0010.nii.gz align/2dgre/0/bet.nii.gz
+                                        # antsRegistrationSyN.sh -d 3 -f align/base_res-2mm_3dt2.nii.gz -m align/2dgre/0/bet.nii.gz -o align/2dgre/0/2dgre_res-2mm_ -t r
+gre2d_fnames = Sys.glob('GRE3D/align/2dgre/*/*-2mm_Warped.nii.gz');
+
+                                        # antsRegistrationSyN.sh -d 3 -f align/base_res-2mm_3dt2.nii.gz -m align/ifft/0/bet.nii.gz -o align/ifft/0/ifft_res-2mm_ -t r
+gre3dfft_fnames <- Sys.glob('GRE3D/align/ifft/*/ifft_res-2mm_Warped.nii.gz');
+gre_angle_name <- function(f)
+  f |> stringr::str_extract("(?<=2dgre/|ifft/)[N0-9]+")|>
+    n_neg_text_to_num() |> harmonize_angle()
+
+names(gre2d_fnames) <- gre_angle_name(gre2d_fnames)
+names(gre3dfft_fnames) <- gre_angle_name(gre3dfft_fnames)
+
+gre_read <- function(f) nii_vec_df(f) |> select(-i) |> rename(!!paste0('phi_',gre_angle_name(f)):=value)
+gre_2d_niidf <- lapply(gre2d_fnames, gre_read)
+gre_fft_niidf <- lapply(gre3dfft_fnames, gre_read)
+
+phi_to_int_col <- function(x) {
+  dimnames(x) <- lapply(dimnames(x),\(x)gsub('phi_','',x))
+  x <- x[,order(as.integer(colnames(x)))]
+  x <- x[order(as.integer(rownames(x))),]
+  return(x)
+}
+
+corplot_as_ggplot <- function(x) {
+  x <- phi_to_int_col(x)
+  mat_l <- round(x,2);
+  mat_r <- mat_l
+  mat_l[lower.tri(x, diag=T)] <- NA
+  mat_r[upper.tri(x, diag=T)] <- NA
+  melt_cor <- function(x) x |> reshape2::melt() |>
+                            mutate(Var1=factor(Var1,levels=rev(colnames(x))),
+                                   Var2=factor(Var2,levels=colnames(x))) |>
+                            arrange(Var1, Var2)
+
+  mat_shapes <- melt_cor(mat_l)
+  mat_text <- melt_cor(mat_r)
+  ggplot(mat_shapes)+
+    aes(y=Var1,x=Var2, fill=value, size=abs(value), label=value) +
+    geom_point(shape=21,stroke=0) +
+    scale_radius(guide="none", range=c(3,10), limits=c(0,1)) +
+    geom_text(aes(size=abs(value)/2,
+                  color=factor(sign(value), levels=c(-1,1)),
+                  alpha=abs(value)),
+              data=mat_text,
+              vjust=0, hjust=0) +
+    theme_minimal() +
+    scale_color_manual(values=c('red','blue'), guide="none") +
+    scale_alpha_continuous(range=c(.5,1), guide="none") +
+    scale_fill_distiller(palette='RdBu', limits=c(-1,1))+
+    theme(panel.grid=element_blank(), axis.text.y = element_text(angle=90))+
+    labs(fill="r", y="",x="")
+}
+
+gre_2d_wide <-do.call(cbind, gre_2d_niidf)
+gre_3dfft_wide <- do.call(cbind, gre_fft_niidf)
+gre_gre_p <- gre_2d_wide |> cor(use='pairwise.complete.obs') |> corplot_as_ggplot() + ggtitle('2D GRE')
+fft_fft_p <- gre_3dfft_wide |> cor(use='pairwise.complete.obs') |> corplot_as_ggplot()+ ggtitle('3D GRE rotated and downsampled')
+
+
+# confirming order: Var1 = row name
+# matrix(1:4,2) |> reshape2::melt()|> filter(Var1==1, Var2==2)
+#   Var1 Var2 value
+# 1    1    2     3
+# > matrix(1:4,2)[1,2]
+# [1] 3
+cor_fft_actual <- sapply(names(gre_3dfft_wide), \(n) cor(gre_3dfft_wide[,n], gre_2d_wide, use='pairwise.complete.obs'))
+rownames(cor_fft_actual) <- names(gre_3dfft_wide)
+
+gre_fft_p <-
+  ggplot(cor_fft_actual|>phi_to_int_col()|>round(2)|>reshape2::melt()) +
+  aes(y=Var1,x=Var2, color=value, fill=value, size=abs(value), label=value) +
+  #geom_point(shape=21,stroke=0) +
+  geom_text() +
+  scale_radius(guide="none", range=c(3,10), limits=c(0,1)) +
+  theme_minimal() +
+  #scale_color_manual(values=c('red','blue'), guide="none") +
+  #scale_alpha_continuous(range=c(.5,1), guide="none") +
+  scale_fill_distiller(palette='RdBu', limits=c(-1,1))+
+  scale_color_distiller(palette='RdBu', limits=c(-1,1))+
+  theme(panel.grid=element_blank(), axis.text.y = element_text(angle=90))+
+  # Var1 is x is rows is simulated (sapply over simulated, column results combined over rows)
+  labs(fill="r", x="Simulated ɸ", y="Actual ɸ") +
+  ggtitle('Voxelwise correlation 2D GRE to Simulated') + guides(color="none")
+
+
+
+gre_fft_p / (gre_gre_p | fft_fft_p) + plot_layout(guides="collect")
+#+end_src
+
+#+RESULTS:
+
+** Add example images
+Matlab code saves wrong direction?
+#+begin_src R :session
+
+# gre2d_fnames = Sys.glob('GRE3D/align/2dgre/*/*-2mm_Warped.nii.gz');
+# gre3dfft_fnames <- Sys.glob('GRE3D/align/ifft/*/ifft_res-2mm_Warped.nii.gz');
+plot_gre <- function(f)
+  ggbrain(bg_color="white",text="black") +
+    images(c(underlay=f)) +
+    slices("x=20") +
+    geom_brain("underlay", show_legend=F) +
+    render()
+
+N40_a <- plot_gre("GRE3D/align/2dgre/N40/bet.nii.gz") + ggtitle('2D GRE ɸ -40')
+P20_s <- plot_gre("GRE3D/align/ifft/N40/bet.nii.gz") + ggtitle('Simulated ɸ 20')
+
+P20_a <- plot_gre("GRE3D/align/2dgre/20/bet.nii.gz") + ggtitle('2D GRE ɸ 20')
+N40_s <- plot_gre("GRE3D/align/ifft/20/bet.nii.gz") + ggtitle('Simulated ɸ -40')
+
+P20_img <- readNifti(gre3dfft_fnames[["20"]])
+N40_img <- readNifti(gre2d_fnames[["-40"]])
+P20_N40 <- (P20_img/max(P20_img,na.rm=T)*100) - (N40_img/max(N40_img,na.rm=T)*100)
+
+p_simdiff_brain <-
+  ggbrain(bg_color="white",text="black") +
+                                        #images(list(underlay=t1_crop)) +
+  images(list(diff=P20_N40)) +
+  slices("x=20") +
+  geom_brain("diff", fill_scale = scale_fill_bisided()) +
+  render()
+
+
+(ggbrain(bg_color="white",text="black") +
+ images(list(underlay=P20_img)) +
+ slices("x=20") +
+ geom_brain("underlay") +
+ render()) | (ggbrain(bg_color="white",text="black") +
+              images(list(underlay=N40_img)) +
+              slices("x=20") +
+              geom_brain("underlay") +
+              render())
+
+(N40_s | P20_s) / (N40_a | P20_a)
+#+end_src
+
+*** Combined
+
+#+begin_src R :session :width 11.5 :height 10 :res 300 :units in :results graphics file :file Figures/orgmode/inflow_2Dto3Dsimulated.png
+gre_n40p20_grid <- (N40_s | P20_s) / (N40_a | P20_a)
+(gre_fft_p + scale_radius(guide="none", range=c(3,6), limits=c(0,1))  |
+ gre_n40p20_grid) / (gre_gre_p | fft_fft_p) + plot_layout(guides="collect")
+
+#+end_src
+
+#+RESULTS:
+[[file:Figures/orgmode/inflow_2Dto3Dsimulated.png]]
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+** TODO actually run MSA!
 
 * 3D EPI 2x2x2
 
@@ -1328,34 +1771,6 @@ print(p_tsnr_both)
  
  
  
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 #+begin_src R :session :results output
  tsnr_min <- apply(tsnr,c(1:3),min,na.rm=T) |> asNifti(tsnr)
  tsnr_max <- apply(tsnr,c(1:3),max,na.rm=T)|> asNifti(tsnr)
@@ -1408,23 +1823,6 @@ p_3depiiso|>render() |> print()
  
  
  
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 #+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/a10-5.png
 mxangle_a10_5_sub1 <- readNifti("AngleCompare/maxangle_mni/sub-1_select-n40n33n13p13p20_angleatmax-tsnr.nii.gz")
 mxangle_a10_5_sub1[t1<50] <- NA
@@ -1446,23 +1844,6 @@ p_a10_5|>render() + labs(title="2d EPI best angle") |> print()
 
 #+RESULTS:
 [[file:Figures/orgmode/maxangle/a10-5.png]]
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
  
  
  
@@ -1542,23 +1923,6 @@ p_dseg + render() + labs(title="GM, WM, CSF Segmentation") |> print()
  
  
  
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 #+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/dseg_hist.png
 dseg_df <- list(
     data.frame(seg="csf", data="3d", maxangle=mxangle[dseg==3]),
@@ -1612,23 +1976,6 @@ print(dseg_by_acq)
  
  
  
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 
 #+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/3d_a10_side.png :width 800
 plot_grid(plot_grid(p_a10_5 + render() , p_3depiiso+render(), nrow=2),
@@ -1637,23 +1984,6 @@ plot_grid(plot_grid(p_a10_5 + render() , p_3depiiso+render(), nrow=2),
 
 #+RESULTS:
 [[file:Figures/orgmode/maxangle/3d_a10_side.png]]
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
  
  
  
@@ -1690,6 +2020,172 @@ sapply(1:3, cor_at_mask)
 | 0.0713699091236022 |
 
 ** Fieldmap?
+
+** 2d vs 3d MSA
+
+*** correlation
+#+begin_src R :session :results graphics file :file Figures/orgmode/3d_v_2d_cor.png :width 800
+iso3d_cmp_cols <- c('msa_3d1','msa_1','msa_2','tsnr_3d1','tsnr_1','tsnr_2','b0_3d1','b0_1')
+iso3d_cmp_mat <- compare_cors_df[iso3d_cmp_cols,iso3d_cmp_cols]
+
+# stylize x/y ticks add subscript and bold: msa_1 to MSA["1"]; MSA_3d1 bold(MSA_["3d1"])
+relabel_datasets_axis <- function(x)
+  parse(text=gsub('(b|snr|msa)','\\U\\1',x, perl=T)|>
+          gsub('(.*_3d1)','bold(\\1)',x=_) |>
+          gsub('_([^\\)]*)', '["\\1"]', x=_))
+
+p_iso3d_cor <-
+  corplot_as_ggplot(iso3d_cmp_mat) +
+  # why do we need to switch these?
+  scale_color_manual(values=c('blue','red'), guide="none") +
+  scale_x_discrete(labels=relabel_datasets_axis) +
+  scale_y_discrete(labels=relabel_datasets_axis) +
+  ggforce::geom_mark_rect(aes(group=annote, label=NULL),
+                          color='black', size=1, fill=NULL, expand=.05, position=position_nudge(x=.23,y=.08),
+                          data=data.frame(Var2=c('msa_3d1','msa_3d1'),Var1=c('tsnr_3d1','msa_1'), value=NA, annote=c(1,2))) +
+  ggtitle('Voxelwise argmax ɸ correlations') +
+  theme(plot.title=element_text(hjust=.5,size=20),
+        axis.text.x=element_text(hjust=0),
+        axis.text.y=element_text(hjust=.5))
+print(p_iso3d_cor)
+#+end_src
+
+#+RESULTS:
+[[file:Figures/orgmode/3d_v_2d_cor.png]]
+
+*** roi
+#+begin_src R :session :colnames yes
+vecs_3diso <- rbind(
+  cbind(
+    nii_vec_df(images_to_cor$msa_1   )|> rename(msa=value),
+    nii_vec_df(images_to_cor$tsnr_1  )|> rename(tsnr=value) |> select(-i)
+  )|> mutate( sess='1', i=1:n()),
+  cbind(
+    nii_vec_df(images_to_cor$msa_3d1 )|> rename(msa=value),
+    nii_vec_df(images_to_cor$tsnr_3d1)|> rename(tsnr=value) |> select(-i)
+  )|> mutate( sess='3d1', i=1:n())
+ ) |> merge(roi_vec, by='i', all.x=T)
+
+vecs_3diso |> group_by(roi,sess) |> summarise(across(c(tsnr,msa), list(mean=\(x) round(mean(x, na.rm=T)), n=\(x) length(which(is.na(x))))))
+#+end_src
+
+#+RESULTS:
+| roi  | sess | tsnr_mean | tsnr_n | msa_mean |  msa_n |
+|------+------+-----------+--------+----------+--------|
+| AON  |    1 |       -21 |     39 |      -24 |     62 |
+| AON  |  3d1 |       -14 |    177 |      -29 |     90 |
+| PirF |    1 |       -14 |     10 |      -32 |     10 |
+| PirF |  3d1 |        -7 |     10 |      -24 |     10 |
+| PirT |    1 |       -13 |    216 |      -18 |    144 |
+| PirT |  3d1 |       -13 |    142 |      -20 |    170 |
+| Tub  |    1 |        -9 |     12 |      -22 |     21 |
+| Tub  |  3d1 |        -8 |     13 |      -14 |    153 |
+| V4   |    1 |        -1 |     18 |       -2 |     45 |
+| V4   |  3d1 |        -3 |     20 |       10 |     18 |
+|      |    1 |        -9 | 368638 |      -20 | 368157 |
+|      |  3d1 |        -8 | 367526 |      -14 | 368156 |
+
+
+#+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/3diso_msa_tsnr_roi.png :session :height 800
+iso3d_pd <- vecs_3diso |>
+  filter(roi %in% c('V4','AON','Tub')) |>
+  transmute(i,sess,
+            msa=as.factor(round(msa)),
+            tsnr=as.factor(round(tsnr)),
+            # redo factor to remove vestigal levels and reorder
+            roi=factor(as.character(roi), levels=c("AON","V4","Tub"))) |>
+  pivot_longer(-c('roi','i','sess'))
+
+iso3d_cnt <- iso3d_pd |>
+  # remove angle at 0. problem with 0 as NA in masking?
+  # percents are low. presumably b/c they're getting discarded erronously somehwere?
+  # but why not totally zer (is the case for tsnr sub-1)
+  filter(value!=0) |>
+  count(name,sess,roi,value) |>
+  group_by(name,roi,sess) |>
+  mutate(prct=n/sum(n)*100,
+         is_max=prct==max(prct,na.rm=T))
+
+p_iso_roicnt <- ggplot(iso3d_cnt) +
+  aes(x=value, y=prct, fill=name, color=is_max) +
+  geom_bar(stat='identity',position='dodge') +
+  facet_grid(sess~roi) +
+  scale_color_manual(values=c("#ffffff00","#000000"), guide="none") +
+  theme_bw() +
+  theme(panel.grid=element_blank()) +
+  labs(x='ɸ', y='% ROI  in argmax(ɸ)', color='Measure')
+print(p_iso_roicnt)
+#+end_src
+
+#+RESULTS:
+[[file:Figures/orgmode/maxangle/3diso_msa_tsnr_roi.png]]
+
+*** Brain
+
+#+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/3diso_msa_tsnr_roi_brain.png :session :width 800
+# roi_label_color and roi_colors; roi_3d, t1_crop; msa_roi_only, tsnr_roi_only from above
+msa_roi_only3d1 <- mt_nii$msa_3d1
+msa_roi_only3d1[roi_3d == 0|t1_crop == 0] <- NA
+tsnr_roi_only3d1 <- mt_nii$tsnr_3d1
+tsnr_roi_only3d1[!roi_3d != 0|t1_crop == 0] <- NA
+
+p_brain_msa_3d1 <- ggbrain(bg_color="white", text="black") +
+  images(list(underlay = t1_crop)) +
+  images(list(phi = mt_nii$msa_3d1), labels=color_angle_df) +
+  images(list(roi_phi = msa_roi_only3d1), labels=color_angle_df) +
+  images(list(roi = roi_3d), labels=roi_label_color) +
+  slices(c("x=28", "z=7")) +
+  geom_brain("underlay", mapping=aes(fill=value, alpha=1)) +
+  geom_brain("phi[underlay>0]",
+     mapping=aes(fill=phi),
+     fill_scale = scale_fill_manual("ɸ", values=angle_colors_div, guide="none"),
+     alpha=.3) +
+  geom_brain("roi_phi",
+     mapping=aes(fill=phi),
+     fill_scale = scale_fill_manual("ɸ", values=angle_colors_div, guide="none" ),
+     alpha=1) +
+  geom_region_label_repel(image="roi",label_column="label",color='black', size=3, force=1.5,force_pull=0) +
+  render() +
+  ggtitle("MSA") + theme(plot.title=element_text(hjust=-1, color="#F8766D"))
+ ,#+ labs(title="MSA"))
+
+p_brain_tsnr_3d1 <- ggbrain(bg_color="white", text="black") +
+  images(list(underlay = t1_crop)) +
+  images(list(phi = mt_nii$tsnr_3d1), labels=color_angle_df) +
+  images(list(roi_phi = tsnr_roi_only), labels=color_angle_df) +
+  images(list(roi = roi_3d), labels=roi_label_color) +
+  slices(c("x=28", "z=7")) +
+  geom_brain("underlay", mapping=aes(fill=value, alpha=1)) +
+  geom_brain("phi[underlay>0]",
+     mapping=aes(fill=phi),
+     fill_scale = scale_fill_manual("ɸ", values=angle_colors_div, guide="none"),
+     alpha=.3) +
+  geom_brain("roi_phi",
+     mapping=aes(fill=phi),
+     fill_scale = scale_fill_manual("ɸ", values=angle_colors_div, guide="none"),
+     alpha=1) +
+  geom_region_label_repel(image="roi",label_column="label",color='black', size=3, force=1.5,force_pull=1.5) +
+  render() +
+  ggtitle("tSNR 3D") + theme(plot.title=element_text(hjust=-1, color="#00BFC4"))
+ # + labs(title="tSNR")
+
+
+p_brain_msa_tsnr_3d1 <- (p_brain_msa_3d1  / p_brain_tsnr_3d1 / (p_brain_tsnr_1 +  ggtitle("tSNR 2D") + theme(plot.title=element_text(color="black"))))
+print(p_brain_msa_tsnr_3d1)
+#+end_src
+
+*** Combined
+
+#+begin_src R :session :results graphics file :file Figures/orgmode/3diso_MSAs_vs_tsnr.png :session :width 12.5 :height 9.5 :units in :res 300
+
+pbt_1 <- p_brain_tsnr_1 +  ggtitle("tSNR 2D") + theme(plot.title=element_text(color="black"))
+
+(p_brain_msa_3d1  / p_brain_tsnr_3d1 /pbt_1 ) | ( (p_iso_roicnt+guides(fill="none")) / (p_iso3d_cor + theme(plot.title=element_text(hjust=.5,size=15)) ))
+#+end_src
+
+#+RESULTS:
+[[file:Figures/orgmode/3diso_MSAs_vs_tsnr.png]]
+
 
 * 3D EPI - 2x2x3 :noexport:
 input BIDS like ~Data/bids-3depi/sub-1/func/sub-1_task-n40p20_acq-inc_bold.nii.gz~
