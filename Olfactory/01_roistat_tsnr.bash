@@ -7,13 +7,22 @@ sed -E 's/^File/subj\ttask/;s/restn/rest-/;
 	s/n([0-9][0-9])/-\1/;
 	s/p([0-9][0-9])/\1/;'
 }
-tsnr_files=(../Data/tsnr/sub-*task-rest*_tsnr.nii.gz ../Data/tsnr/3depi2x2x2/sub-1iso3d_task-rest_*_tsnr.nii.gz)
+tsnr_files=(../Data/tsnr/sub-*task-rest*[^d]_tsnr.nii.gz ../Data/tsnr/3depi2x2x2/sub-1iso3d_task-rest_*[^d]_tsnr.nii.gz)
+tsnr_xcpd_files=(../Data/tsnr/sub-*task-rest*_xcpd_tsnr.nii.gz ../Data/tsnr/3depi2x2x2/sub-1iso3d_task-rest_*_xcpd_tsnr.nii.gz)
 
 atlas_mask=./atlas-AonPirFTTubV4_res-func.nii.gz
 dseg=../Data/preproc/bids-a10/fmriprep-25.2.3/sub-1/anat/sub-1_space-MNI152NLin2009cAsym_res-task_dseg.nii.gz
 
 3dROIstats -nzmean -nomeanout -mask $atlas_mask "${tsnr_files[@]}" |
 	cleanup_names | tee atlas-AonPirFTTubV4_tsnr.tsv
+
+# 20260503 - use xcpd smoothed denoised
+echo "# xcpd tsnr atlas (useuless: bandpassed, no mean"
+3dROIstats -nzmean -nomeanout -mask $atlas_mask "${tsnr_xcpd_files[@]}" |
+	cleanup_names | tee atlas-AonPirFTTubV4_xcpd_tsnr.tsv
+echo "# xcpd tsnr dseg (GM,WM,CSF) [useless: bandpassed, no mean"
+3dROIstats -nzmean -nomeanout -mask $dseg "${tsnr_xcpd_files[@]}" |
+  cleanup_names | tee atlas-dseg_xcpd_tsnr.tsv
 
 # 20260427 - added res-task but not sure what made that :gulp: WM GM and CSF
 3dROIstats -nzmean -nomeanout -mask $dseg "${tsnr_files[@]}" |
