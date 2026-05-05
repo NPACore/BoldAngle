@@ -34,7 +34,7 @@ niifile_vec <- function(img, mask=NULL, na.zero=TRUE){
 #' @examples
 #' n_neg_text_to_num(c('n40','20','p13'))
 n_neg_text_to_num <- function(txt)
-    gsub('^n','-', txt) |> gsub('^p','',x=_) |>as.numeric()
+    gsub('^[Nn]','-', txt) |> gsub('^p','',x=_) |>as.numeric()
 
 #' @examples
 #' rest_subj_angle(list("25.2.3/sub-2/func/sub-2_task-restn6_space-MNI152NLin2009cAsym_desc-mean_bold.nii.gz", "sub-1iso3d/func/sub-1iso3d_task-rest_acq-n13_space-MNI152NLin2009cAsym_desc-mean_bold.nii.gz"))
