@@ -2207,7 +2207,31 @@ jq '[.IntendedFor, (.SliceTiming|length)]|@tsv' -M  Data/bids-3depi/sub-1/fmap/s
 * Limitations
  * motion: Hutton 2002
 * Log                                                            :noexport:
+** 2026-05-04
+*** initial figures implemented
+*** TODO results
+**** sub-1 vs sub-2 tSNR vs MSA
+*** TODO regenerate intro figure
+**** add ROIs
+**** citation/justification for AON
+*** TODO regenerate animation
+**** TODO [#A] higher quality dpi
+**** TODO [#A] add parameter table
+**** remove wm/gm/csf
+**** remove 3diso
+*** TODO MSA angle key to other figures
+*** TODO slice planes
+**** brain backgrounds
+**** MSA line
+*** TODO [#C] add MSA<->MSA correlation for 3D GRE
+**** fix matlab code
 
+** 2026-05
+  maybe want blurring/smoothing? tSNR on xcpd is bandpassed. no mean for snr calc
+** 2026-04-28
+   epi3d started at 0 instead of -20!
+  /home/boldsliceangle/BOLDSliceAngle/FmapCorrect/wf/human-largefov-3depi2x2x2/sub-1iso3d/resliced_volreg.nii.gz
+  /home/boldsliceangle/BOLDSliceAngle/FmapCorrect/wf/human-largefov/sub-1/resliced_volreg.nii.gz
 ** 2026-04-11
   * sub-2 intendedFor on largefov is MIA! fmap also DNE for 3depi2x2x2 for all 3depi despite existing intended for (working on largefov for 2depi)
   * AngleCompare/04_fmapwarp.bash - fmaps to mni for comparison
@@ -2222,10 +2246,6 @@ jq '[.IntendedFor, (.SliceTiming|length)]|@tsv' -M  Data/bids-3depi/sub-1/fmap/s
     * TODO: cor mat of tsnr across all angles
     * CODE: how to get data into nifti object
       https://github.com/michaelhallquist/ggbrain/blob/main/R/ggbrain_images.R#L53 (add_array_as_image)
-** 2026-04-28
-   epi3d started at 0 instead of -20!
-  /home/boldsliceangle/BOLDSliceAngle/FmapCorrect/wf/human-largefov-3depi2x2x2/sub-1iso3d/resliced_volreg.nii.gz
-  /home/boldsliceangle/BOLDSliceAngle/FmapCorrect/wf/human-largefov/sub-1/resliced_volreg.nii.gz
 * colophon :noexport:
 #+begin_src elisp :results none
 (setq org-display-remote-inline-images t)
