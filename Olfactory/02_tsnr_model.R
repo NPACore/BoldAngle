@@ -16,18 +16,18 @@ cleanup_angle <- function(d) d|>
                            angle==-4020~angle_vals[volume+1],
                            T~angle)) |> select(-volume)
 
-d <- readr::read_tsv(Sys.glob('Olfactory/atlas-AonPirFTTubV4_*.tsv'),
+roistats <- readr::read_tsv(Sys.glob('Olfactory/atlas-AonPirFTTubV4_*.tsv'),
                      id='input') |>
     rename(volume=`Sub-brick`,
            AON=NZMean_1, PirF=NZMean_2, PirT=NZMean_3, Tub=NZMean_4,
            V4=NZMean_5, angle=task) |>
     cleanup_angle()
 
-m <- lm(AON~angle, data=d|>filter(input=='tsnr'))
+m <- lm(AON~angle, data=roistats|>filter(input=='tsnr'))
 summary(m)
 
 # Call:
-# lm(formula = AON ~ angle, data = d)
+# lm(formula = AON ~ angle, data = roistats)
 # 
 # Residuals:
 #     Min      1Q  Median      3Q     Max 
@@ -56,7 +56,7 @@ p_data_dseg <- readr::read_tsv(Sys.glob('Olfactory/atlas-dseg_*.tsv'), id='input
            ratmax = measure/tmax) #|> filter(!roi %in% c('PirF'))
 
 
-p_data <- d |>
+p_data <- roistats |>
     gather('roi','measure', -c(subj,angle,input)) |>
     mutate(subj=as.factor(subj), epi3d=grepl('3d',subj)) |>
     group_by(subj, input) |>
@@ -81,7 +81,7 @@ p_model_data <- angle_model |>
 
 # colors for ggbrain's outline. values set by 3dcalc in 00_get_atlas.bash
 # dseg add 10 locally below
-roi_label_color <- data.frame(value=c(             5,    1,    4, 1+10,2+10,3+10),
+roi_label_color <- data.frame(value=c(        5,    1,    4, 1+10,2+10,3+10),
                               label=factor(c('V4','AON','Tub','GM','WM','CSF'), levels=c('V4','AON','Tub','GM','WM','CSF')),
                               color=scales::hue_pal()(6))
                               #color=c(scales::hue_pal()(3), RColorBrewer::brewer.pal(3,"Set3"))
@@ -221,7 +221,7 @@ angle_frames <- function(i, prefix="/tmp/XXXX_") {
    #                          plot_at_angle(p,i),
    #                          nrow=2)
    a_plots <- (a10_at_angle(i) | tsnr_at_angle(i)) / plot_at_angle(p,i)
-   ggsave(fname, a_plots, height=9.8, width=10.5)
+   ggsave(fname, a_plots, height=9.8, width=10.5, dpi=300)
    return(fname)
 }
 input_images<-lapply(seq_along(angle_vals), angle_frames)
