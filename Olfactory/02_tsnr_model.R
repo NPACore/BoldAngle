@@ -8,6 +8,7 @@ cleanup_angle <- function(d) d|>
     mutate(input=gsub('.*_|.tsv','',input),
            volume=as.numeric(gsub('[^0-9]','',volume)),
            # truncated 39.9, now want to round up
+           agnle=as.numeric(angle),
            angle=case_when(angle==-39~-40,
                            angle==-26~-27,
                            angle==-19~-20,
@@ -63,7 +64,9 @@ p_data <- roistats |>
     mutate(tmax=max(measure),
            ratmax = measure/tmax) |>
     rbind(p_data_dseg) |>
-    mutate(input=case_when(input=='n40p20'~'Single Volume Magnitude',T~input))
+    mutate(input=case_when(input=='n40p20'~'MSA Intensity',
+                           input=='tsnr'~'Rest tSNR',
+                           T~input))
 
 ###
 angle_model <- p_data |>
@@ -86,19 +89,20 @@ roi_label_color <- data.frame(value=c(        5,    1,    4, 1+10,2+10,3+10),
                               color=scales::hue_pal()(6))
                               #color=c(scales::hue_pal()(3), RColorBrewer::brewer.pal(3,"Set3"))
                               #color=c("7fc97f", "#beaed4", "#fdc086", "#ffff89", "#386cb0", "#f0027f"))
-roi_to_plot <- roi_label_color$label
+roi_to_plot <- c("V4","AON","Tub") # roi_label_color$label
+subj_to_plot <- c("1","2")
 
 p <-p_data |>
-    filter(roi %in% roi_to_plot) |>
+    filter(roi %in% roi_to_plot, subj %in% subj_to_plot) |>
     mutate(roi = factor(roi, roi_to_plot)) |>
     ggplot() +
     aes(x=angle,y=ratmax, color=roi, group=roi, shape=subj) +
     geom_point(alpha=.25) +
-    geom_smooth(method='lm', alpha=.10) +
-    scale_shape_manual(values=c(19,21,17)) + # filled circle, open circle, triangle; sub1 is circle
+    geom_smooth(method='lm', alpha=.05)+#, aes(group=paste(subj,roi))) +
+    scale_shape_manual(values=c(19,21)) + #,17)) + # filled circle, open circle, triangle; sub1 is circle
     scale_color_manual(values=roi_label_color$color) +
     facet_grid(input~.) +
-    theme_minimal() +
+    theme_bw() +
     #ggrepel::geom_label_repel(data=p_model_data|>
     #                              filter(roi %in% roi_to_plot,
     #                                     `p.value_(Intercept)`<.01),
@@ -112,7 +116,8 @@ p <-p_data |>
     #                          color='black',
     #                          segment.size=.2,
     #                          aes(label=glue::glue("{subj} {roi} {round(tsnr,1)} @ {angle}"))) +
-    labs(title="Relative Mangitude and tSNR at acquistion angles", y="value/max(session)", x="Acq. Angle", shape="Session", color="Region")
+    labs(title="Relative Mangitude and tSNR at acquistion angles", y="Session Norm value", x="ɸ", shape="Session", color="Region") +
+    theme(panel.grid = element_blank(), title=element_text(size=15))
 p
 
 ggsave(p, file='atlas-AonPirFTTub_lm.png', width=5, height=3)
@@ -164,15 +169,13 @@ tsnr_nii <- lapply(c("n39", "n33","n26","n19", "n13", "n6", "0", "6", "13", "20"
 show_slices <- c("x=21")#, "z=10")
 a10_at_angle <- function(i) {
   img <- asNifti(a10[,,,i],a10)
+  img[img<=50|is.na(img)] <- 1 # fill rectangle
   ggbrain(bg_color="white", text="black") +
     images(list(underlay = img)) +
     slices(show_slices) +
     geom_brain("underlay") +
     render() +
-    labs(title=paste0("Quick EPI ɸ",angle_vals[i]))
-}
-tsnr_at_angle <- function(i) {
-  this_angle <- angle_vals[i]; print(this_angle)
+    labs(title=paste0("MSA ɸ ",angle_vals[i]))
 }
 plot_at_angle <- function(p,i) {
   this_angle <- angle_vals[i]; print(this_angle)
@@ -181,7 +184,7 @@ plot_at_angle <- function(p,i) {
                                 segment.size=1,
                                 aes(label=glue::glue("{round(measure,1)}"))) +
       geom_vline(data=data.frame(angle=this_angle,
-                                 roi=NA,input=c("tsnr","Single Volume Magnitude")),
+                                 roi=NA,input=c("Rest tSNR","MSA Intensity")),
                  aes(xintercept=angle),
                  color='yellow')
       # + labs(title= glue::glue("tSNR at acquisition angle {this_angle}"))
@@ -200,7 +203,7 @@ tsnr_at_angle <- function(i) {
   ggbrain(bg_color="white", text_color="black") +
     images(list(underlay=t1_crop, tsnr=tsnr_img)) +
     images(list(atlas=roi_mask), labels=roi_label_color) +
-    slices(c("x=38", "y=-3")) +
+    slices(c("x=38")) + #, "y=-3")) +
     geom_brain("underlay")+
     geom_brain("tsnr",
                fill_scale=scale_fill_distiller("tSNR", palette="Spectral",
@@ -220,10 +223,14 @@ angle_frames <- function(i, prefix="/tmp/XXXX_") {
    #                                             tsnr_at_angle(i),ncol=2),
    #                          plot_at_angle(p,i),
    #                          nrow=2)
-   a_plots <- (a10_at_angle(i) | tsnr_at_angle(i)) / plot_at_angle(p,i)
-   ggsave(fname, a_plots, height=9.8, width=10.5, dpi=300)
+   a_plots <- (a10_at_angle(i) | tsnr_at_angle(i)) / (plot_at_angle(p,i) +labs(title=""))
+
+   # 450 x 570 ~ 1.3xwidth=height
+   ggsave(fname, a_plots, height=10, width=8, dpi=300)
    return(fname)
 }
+
 input_images<-lapply(seq_along(angle_vals), angle_frames)
 #gifski::gifski(unlist(input_images), gif_file="tSNR_angle.gif")
-system("ffmpeg -y -f image2 -r 2 -i /tmp/XXXX_%02d.png -vcodec libx264 -crf 22 tSNR_angle.mp4")
+#system("ffmpeg -y -f image2 -r 2 -i /tmp/XXXX_%02d.png -vcodec libx264 -crf 10 tSNR_angle_10.mp4")
+system("ffmpeg -y -f image2 -r 2 -i /tmp/XXXX_%02d.png -vcodec libx264 -crf 10 -pix_fmt yuv420p tSNR_angle_crf-10_pix-yuv420p.mp4")
