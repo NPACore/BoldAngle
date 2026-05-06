@@ -14,6 +14,7 @@ harmonize_angle <- function(angle){
 
 # we expect 10 angles
 msa_angles <- c(-40, -33, -27, -20, -13, -7, 0, 7, 13, 20)
+msa_angles5 <- c(-40, -33, -13, 13, 20)
 
 # diverging color scheme. here to use for consistancy elsewhere
 angle_colors_div <- scales::pal_div_gradient(low="red",mid="green",high="blue")(scales::rescale(msa_angles))
