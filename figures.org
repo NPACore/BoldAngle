@@ -1879,6 +1879,13 @@ delta_tsnr_brain + #slices(brain_pos) +
  #+RESULTS:
  [[file:Figures/orgmode/tsnr_B0/tsnr_diff_brain.png]]
 
+*** How often is MSA and tSNA picking the same?
+What angle is MSA off by? how big is the tSNR difference between picked and actual.
+
+#+begin_src R :session
+
+#+end_src
+
 *** tSNR ~ MSA w/ restricted by tsnr range
 
  Does tsnr <-> MSA match improve when looking only
@@ -1894,6 +1901,8 @@ tsnr_cor_by_quant <- rbind(
                           cor(all_vecs$tsnr_1[tsnr_1a5d>=tsnr_caps[i]],
                               all_vecs$msa_1[tsnr_1a5d>=tsnr_caps[i]],
                               use='pairwise.complete.obs')),
+               nmatch=sapply(seq_along(tsnr_caps), \(i)
+                          length(which(all_vecs$tsnr_1[tsnr_1a5d>=tsnr_caps[i]]==all_vecs$msa_1[tsnr_1a5d>=tsnr_caps[i]]))),
                n = sapply(seq_along(tsnr_caps), \(i)
                           length(which(!is.na(all_vecs$tsnr_1[tsnr_1a5d>=tsnr_caps[i]])))),
                thres=tsnr_caps,
@@ -1904,26 +1913,31 @@ tsnr_cor_by_quant <- rbind(
                           cor(all_vecs$tsnr_2[tsnr_2a5d>=tsnr2_caps[i]],
                               all_vecs$msa_2 [tsnr_2a5d>=tsnr2_caps[i]],
                               use='pairwise.complete.obs')),
+               nmatch=sapply(seq_along(tsnr_caps), \(i)
+                          length(which(all_vecs$tsnr_2[tsnr_2a5d>=tsnr2_caps[i]]==all_vecs$msa_2[tsnr_2a5d>=tsnr2_caps[i]]))),
                n = sapply(seq_along(tsnr_caps), \(i)
-                          length(which(!is.na(all_vecs$tsnr_2[tsnr_2a5d>=tsnr_caps[i]])))),
+                          length(which(!is.na(all_vecs$tsnr_2[tsnr_2a5d>=tsnr2_caps[i]])))),
                thres=tsnr2_caps,
                quant= tsnr_caps_quant,
                sess="sub-2"))
 
 tcor_max <- tsnr_cor_by_quant |> filter(quant<.8) |>group_by(sess) |>  filter(cor==max(cor,na.rm=T))
-print(tcor_max)
+print.data.frame(tcor_max)
  #+end_src
 
  #+RESULTS:
- |               cor |      n |            thres | quant | sess  |
- |-------------------+--------+------------------+-------+-------|
- | 0.198641685837161 |  93367 | 13.3697052001953 |   0.6 | sub-1 |
- |  0.15648496281894 | 148766 | 7.55513000488281 |   0.3 | sub-2 |
+ |               cor | nmatch |      n |            thres | quant | sess  |
+ |-------------------+--------+--------+------------------+-------+-------|
+ | 0.198641685837161 |  20147 |  93367 | 13.3697052001953 |   0.6 | sub-1 |
+ |  0.15648496281894 |  32232 | 163643 | 7.55513000488281 |   0.3 | sub-2 |
 
 #+begin_src R :session :results graphics file :file Figures/orgmode/tsnr_B0/tsnr_msa_cor_quantile_thres.png :width 8 :height 4.5 :res 300 :units in
 p_tsnr_cor_quant <-  ggplot(tsnr_cor_by_quant) +
-      aes(x=quant, y=cor, size=n, color=gsub('sub-','',sess)) +
+      aes(x=quant, y=cor,
+          #y=nmatch/n,
+          size=n, color=gsub('sub-','',sess)) +
       geom_hline(data=tcor_max, aes(yintercept=cor), color="gray") +
+      geom_line(data=tsnr_cor_by_quant|>filter(quant<.99), aes(y=nmatch/n, size=NULL,group=sess),alpha=.4, size=1) +
       geom_point() +
       see::theme_modern() +
       theme(plot.title=element_text(size=20, hjust=.5),
@@ -2126,9 +2140,10 @@ msa_tsnr_by_b0_quant <- rbind(
     above_i <- abs(b0_1_nifti)>=b0_1_caps[i]
     tsnr_at_cap<-all_vecs$tsnr_1[above_i]
     data.frame(cor=cor(tsnr_at_cap, all_vecs$msa_1[above_i], use='pairwise.complete.obs'),
-               #nV4=length(which(roi_3d[above_i]==5)),
-               #nAON=length(which(roi_vec[above_i]=='AON')),
-               #nTub=length(which(roi_vec[above_i]=='Tub')),
+               nmatch=length(which(tsnr_at_cap == all_vecs$msa_1[above_i])),
+               nV4=length(which(roi_3d[above_i]==5)),
+               nAON=length(which(roi_3d[above_i]==1)),
+               nTub=length(which(roi_3d[above_i]==4)),
                n=length(which(!is.na(tsnr_at_cap))))}) |> bind_rows() |>
   mutate(thres=b0_1_caps,
          quant= b0_caps_quant,
@@ -2137,30 +2152,42 @@ msa_tsnr_by_b0_quant <- rbind(
     above_i <- abs(b0_2_nifti)>=b0_2_caps[i]
     tsnr_at_cap<-all_vecs$tsnr_2[above_i]
     data.frame(cor=cor(tsnr_at_cap, all_vecs$msa_2[above_i], use='pairwise.complete.obs'),
-               #nV4=length(which(roi_vec[above_i]=='V4')),
-               #nAON=length(which(roi_vec[above_i]=='AON')),
-               #nTub=length(which(roi_vec[above_i]=='Tub')),
+               nmatch=length(which(tsnr_at_cap == all_vecs$msa_1[above_i])),
+               nV4=length(which(roi_3d[above_i]==5)),
+               nAON=length(which(roi_3d[above_i]==1)),
+               nTub=length(which(roi_3d[above_i]==4)),
                n=length(which(!is.na(tsnr_at_cap))))}) |> bind_rows() |>
   mutate(thres=b0_2_caps,
          quant= b0_caps_quant,
          sess="sub-2"))
 
+ msa_tsnr_b0_quant_roi <- msa_tsnr_by_b0_quant |>
+  transmute(cor, sess, quant, n, across(c(nV4,nAON,nTub), \(x) x/max(x))) |>
+  gather(roi,percent,-c(cor,sess,quant,n))
+
 p_b0_cor_quant <-  ggplot(msa_tsnr_by_b0_quant) +
-      aes(x=quant, y=cor, size=n, color=gsub('sub-','',sess)) +
+      aes(x=quant, y=cor, size=n, fill=gsub('sub-','',sess)) +
       #geom_hline(data=tcor_max, aes(yintercept=cor), color="gray") +
-      geom_point() +
+      #geom_line(data=msa_tsnr_by_b0_quant|>filter(quant<.99),
+      #          aes(y=nmatch/n, size=NULL),alpha=.1, size=1) +
+      geom_point(shape=21) +
+      geom_point(data=msa_tsnr_b0_quant_roi,
+                 aes(fill=NULL,
+                     size=percent*max(n),
+                     color=roi),
+                 shape=21) +
       see::theme_modern() +
       theme(plot.title=element_text(size=20, hjust=.5),
             legend.position=c(.3,.8),
             legend.direction="horizontal",
             axis.title=element_text(size=15)) +
-      scale_color_manual(values=sub_colors)+
-      scale_size_continuous(breaks=c(1000,20000), , labels=c("1k","20k")) +
-      guides(color="none") +
+      scale_fill_manual(values=sub_colors)+
+      scale_size_continuous(breaks=c(1000,20000), , labels=c("1%","100%")) +
+      guides(fill="none") +
       labs(title="", y=parse(text="'cor'(ɸ[tSNR], ɸ[MSA])"),
            x="ΔB0 Quantile Threshold",
            size="n Voxels",
-           color="Participant")
+           fill="Participant")
 
 p_tsnr_cor_dist  <-
   rbind(data.frame(tdif=as.vector(tsnr_1a5d), sess='1'),
