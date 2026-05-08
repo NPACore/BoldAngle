@@ -22,6 +22,17 @@ names(angle_colors_div) <- msa_angles
 # c("#FF0000", "#EA7200", "#D29E00", "#ABC900", "#65EF00", "#4FE947", "#78B785", "#7C85B2", "#6A57D6", "#0000FF")
 # also see: scales::show_col(angle_colors_div)
 
+# colors for the 3 sessions sub-1 sub-2 sub-3d1
+sub_colors <- c("#F781BF","#FF7F00","#983EA3")
+names(sub_colors) <- c("1","2","3d1")
+
+
+# stylize x/y ticks add subscript and bold: msa_1 to MSA["1"]; MSA_3d1 bold(MSA_["3d1"])
+relabel_datasets_axis <- function(x)
+  parse(text=gsub('(b|snr|msa)','\\U\\1',x, perl=T)|>
+          gsub('(.*_3d1)','bold(\\1)',x=_) |>
+          gsub('_([^\\)]*)', '["\\1"]', x=_))
+
 # 3D nifti file into vector. useful for between-volume correlation
 niifile_vec <- function(img, mask=NULL, na.zero=TRUE){
   m<-RNifti::readNifti(img)
