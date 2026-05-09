@@ -1,5 +1,5 @@
 #!/usr/bin/env Rscript
-pacman::p_load(dplyr, tidyr, ggplot2, ggbrain)
+pacman::p_load(dplyr, tidyr, ggplot2, ggbrain, RNifti)
 angle_vals <- round(read.table('FmapCorrect/angle.txt')$V1, 0)
 # c(-40, -33, -27, -20, -13, -7, 0, 7, 13, 20)
 # 3depi subset is:
@@ -68,19 +68,19 @@ p_data <- roistats |>
                            input=='tsnr'~'Rest tSNR',
                            T~input))
 
-###
-angle_model <- p_data |>
-    group_by(input, roi) |>
-    group_modify(~broom::tidy(lm(measure~angle,.)))
-
-p_model_data <- angle_model |>
-    pivot_wider(id_cols = c("input","roi"),names_from="term", values_from = -c("input","roi","term"))|>
-    mutate(label=glue::glue("m={round(estimate_angle,2)}\nt={round(statistic_angle,2)}"),
-           angle=20,
-           pred=20*estimate_angle+`estimate_(Intercept)`) |>
-    inner_join(p_data|>filter(angle==20,subj=='1'))|>
-    mutate(ratmax=pred/tmax)
-###
+## ###
+## angle_model <- p_data |>
+##     group_by(input, roi) |>
+##     group_modify(~broom::tidy(lm(measure~angle,.)))
+##
+## p_model_data <- angle_model |>
+##     pivot_wider(id_cols = c("input","roi"),names_from="term", values_from = -c("input","roi","term"))|>
+##     mutate(label=glue::glue("m={round(estimate_angle,2)}\nt={round(statistic_angle,2)}"),
+##            angle=20,
+##            pred=20*estimate_angle+`estimate_(Intercept)`) |>
+##     inner_join(p_data|>filter(angle==20,subj=='1'))|>
+##     mutate(ratmax=pred/tmax)
+## ###
 
 # colors for ggbrain's outline. values set by 3dcalc in 00_get_atlas.bash
 # dseg add 10 locally below
@@ -234,3 +234,5 @@ input_images<-lapply(seq_along(angle_vals), angle_frames)
 #gifski::gifski(unlist(input_images), gif_file="tSNR_angle.gif")
 #system("ffmpeg -y -f image2 -r 2 -i /tmp/XXXX_%02d.png -vcodec libx264 -crf 10 tSNR_angle_10.mp4")
 system("ffmpeg -y -f image2 -r 2 -i /tmp/XXXX_%02d.png -vcodec libx264 -crf 10 -pix_fmt yuv420p tSNR_angle_crf-10_pix-yuv420p.mp4")
+# 20260509 as gif instead
+system("bash -c \"convert $(ls /tmp/XXXX_*.png| sed 's/^/-delay 70 /') Figures/tSNR_angle.gif\"")
