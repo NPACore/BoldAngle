@@ -59,3 +59,30 @@ rest_subj_angle <- function(niilist){
             angle=n_neg_text_to_num(V2)) |>
   mutate(angle = harmonize_angle(angle))
 }
+
+
+# copied from b0
+read_and_crop <- function(f) { x <- readNifti(f); x[t1_crop<=0] <- NA; x }
+mk_tsnr_diff_df <- function(tsnr_in){
+  # tsnr_in 4d 5angle tsnr
+  tsnr_a5_min <- apply(tsnr_in,c(1:3),min,na.rm=T)
+  tsnr_a5_max <- apply(tsnr_in,c(1:3),max,na.rm=T)
+  tsnr_a5_dif <- (tsnr_a5_max - tsnr_a5_min)
+
+  tsnr_a5_minA <- apply(tsnr_in,c(1:3),\(x) which.min(x)|>argm_angle())
+  tsnr_a5_maxA <- apply(tsnr_in,c(1:3),\(x) which.max(x)|>argm_angle())
+  tsnr_a5_difA <- tsnr_a5_maxA - tsnr_a5_minA
+
+  #tsnr_a5d <- tsnr_a5_dif |> asNifti(tsnr)
+  #tsnr_a5d[!is.finite(tsnr_a5d)|tsnr_a5_min<0|t1_crop<5] <- NA
+  #  tsnr_a5d_oob <- tsnr_a5d
+  #  tsnr_a5d_oob[tsnr_a5d>30] <- 30
+  #  tsnr_a5d_oob_roi <- tsnr_a5d_oob
+  #  tsnr_a5d_oob_roi[!roi_3d %in% c(1,4,5) ] <- NA
+
+  data.frame(
+      tsnr=as.vector(tsnr),
+      minmaxdiff=as.vector(tsnr_a5_dif),
+      max=as.vector(tsnr_a5_max),
+      angledif = as.vector(tsnr_a5_difA))
+}

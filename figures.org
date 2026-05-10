@@ -500,22 +500,9 @@ tsnr_range <- oro.nifti::readNIfTI('./maxangle_mni/tsnr-range.nii.gz')@.Data
 #+end_src
 * MSA sequence
 see [[file:Figures/MSA_max.svg]] which uses [[file:Figures/montage_nifit.R]] for nifti slice images.
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
- 
 
-Time and angle pairs used in inkscape labels. (Extension->Text->Text Split)
+  * 20260509 - added actual MSA shot sub1
+  * Time and angle pairs used in inkscape labels. (Extension->Text->Text Split)
 #+begin_src R  :session
 source('msa_funcs.R')
 msa_tr <- 5.5
@@ -769,7 +756,10 @@ images_to_cor <- list(
 
   sd_1='AngleCompare/maxangle_mni/sub-1_select-n40n33n13p13p20_angleatmax-sd.nii.gz',
   sd_2='AngleCompare/maxangle_mni/sub-2_select-n40n33n13p13p20_angleatmax-sd.nii.gz',
-  sd_3d1='AngleCompare/maxangle_mni/sub-1iso3d_select-n40n33n13p13p20_angleatmax-sd.nii.gz')
+  sd_3d1='AngleCompare/maxangle_mni/sub-1iso3d_select-n40n33n13p13p20_angleatmax-sd.nii.gz',
+# 20260508 - why not roi too?
+roi = './Olfactory/atlas-AonPirFTTubV4_res-func.nii.gz'
+)
 
 all_vecs <- do.call(data.frame,
                     lapply(images_to_cor,
@@ -945,13 +935,20 @@ avsl_cnt <- avsl_pd |>
   group_by(name,roi,sess) |>
   mutate(prct=n/sum(n)*100,
          is_max=prct==max(prct,na.rm=T))
+
 p_avsl <- ggplot(avsl_cnt) +
   aes(x=value, y=prct, fill=name, color=is_max) +
   geom_bar(stat='identity',position='dodge') +
   facet_grid(sess~roi) +
   scale_color_manual(values=c("#ffffff00","#000000"), guide="none") +
   theme_bw() +
-  theme(panel.grid=element_blank()) +
+  theme(panel.grid=element_blank(),
+        plot.title=element_text(size=20, hjust=.5),
+        axis.text=element_text(size=15),
+        axis.text.x=element_text(angle=90,hjust=0,vjust=.5),
+        axis.title=element_text(size=20),
+        strip.text=element_text(size=20)
+) +
   labs(x='ɸ', y='% ROI  in argmax(ɸ)', fill='Measure')
 print(p_avsl)
 #+end_src
@@ -1090,23 +1087,40 @@ melt_cor <- function(x)
     arrange(Var1, Var2)
 
 cor_for_shapes <- melt_cor(msa_tsnr_b0_cor)
-cor_for_text <- msa_tsnr_b0_cor_r |> melt_cor() |>
-  mutate(sign=as.factor(sign(value)), text_size=abs(value)/2 ,
-         annote = grepl('tsnr',paste0(Var1,Var2)) & grepl('msa',paste0(Var1,Var2)))
-         #annote = paste0(Var1,Var2) %in% c('tsnr_1msa_1','tsnr_2msa_2', 'b0_1tsnr_1','b0_2tsnr_2'))
+cor_for_text <- msa_tsnr_b0_cor_r |>
+  melt_cor() |>
+  mutate(sign=as.factor(sign(value)),
+         text_size=abs(value)/2 ,
+         #annote = grepl('tsnr',paste0(Var1,Var2)) & grepl('msa',paste0(Var1,Var2)))
+         annote = paste0(Var1,Var2) %in% c('tsnr_1msa_1','tsnr_2msa_2', 'b0_1tsnr_1','b0_2tsnr_2'))
 
-mtbc_p <- cor_for_shapes |>
+#msa_cor_annotations <- function(Var1s='tsnr_1',Var2s='msa_1')
+#  ggforce::geom_mark_rect(aes(group=annote, label=NULL),
+#                          color='black', size=1, fill=NULL,
+#                          expand=.1,
+#                          position=position_nudge(x=.1, y=.5),
+#                          alpha=.8,
+#                          data=cor_for_text|>
+#                            filter(!is.na(value),
+#                                   Var1==Var1s,Var2==Var2s))
+
+
+
+mtbc_p <-
+
+  cor_for_shapes |>
   ggplot()+
   aes(y=Var1,x=Var2, fill=value, size=abs(value), label=round(value,2)) +
   geom_point(shape=21,stroke=0) +
   scale_radius(guide="none", range=c(3,18), limits=c(0,1)) +
   #ggforce::geom_circle() +
   geom_text(size=10, aes(size=NULL,color=sign, alpha=abs(value)), data=cor_for_text, vjust=0, hjust=0) + # size=text_size,
-  ggforce::geom_mark_rect(aes(group=annote, label=NULL),
-                          color='black', size=1, fill=NULL, expand=.1,
-                          position=position_nudge(x=.15, y=.1),
-                          alpha=.8,
-                          data=cor_for_text|>filter(!is.na(value), annote))+
+  geom_point(data=cor_for_text|>filter(annote,!is.na(value)),
+             aes(color=NULL),
+             #shape=21,
+             size=3,
+             color='black') +
+  #msa_cor_annotations('tsnr_1','msa_1') +
   #  annotate("rect", xmin=2, xmax=4, ymin=1,ymax=2, color='black', fill=NULL, size=2) +
   theme_minimal() +
   scale_color_manual(values=c('blue','red'), guide="none") +
@@ -1115,19 +1129,92 @@ mtbc_p <- cor_for_shapes |>
   scale_fill_distiller(palette='RdBu', limits=c(-1,1))+
   theme(panel.grid=element_blank(),
         plot.title=element_text(hjust=.5,size=20),
-        axis.text.x=element_text(hjust=-.5, size=15),
-        axis.text.y=element_text(hjust=.5, size=15, angle=90))+
+        axis.text.x=element_text(hjust=-.5, size=20),
+        axis.text.y=element_text(hjust=.5, size=20, angle=90))+
   labs(fill="r", y="",x="") +
   scale_x_discrete(labels=relabel_datasets_axis) +
   scale_y_discrete(labels=relabel_datasets_axis)
+
 print(mtbc_p)
 #+end_src
 
 #+RESULTS:
 [[file:Figures/orgmode/maxangle/msa_tsnr_cor.png]]
 
+
+*** How often is MSA and tSNA picking the same?
+What angle is MSA off by? how big is the tSNR difference between picked and actual.
+
+#+begin_src R :session :results graphics file :file Figures/orgmode/tsnr_msa_assignments_hist.png :width 6 :height 4 :res 300 :units in
+msatsnr_matching_i <- all_vecs$msa_1 == all_vecs$tsnr_1
+length(which(msatsnr_matching_i)) / length(msatsnr_matching_i) * 100 # 8%
+
+# NOT USED. gird of mismatches
+p_msatsnr_matches <- all_vecs |>
+  select(msa_1,tsnr_1)|>
+  filter(!is.na(tsnr_1),tsnr_1!=0,msa_1!=0) |>
+  mutate(across(c(msa_1,tsnr_1), as.factor)) |>
+  count(msa_1,tsnr_1) |>
+  group_by(tsnr_1) |>
+  mutate(of_tSNR = n/sum(n)) |>
+  ggplot() +
+  aes(x=msa_1,y=tsnr_1, fill=of_tSNR) +
+  geom_tile() +
+  geom_text(aes(label=round(of_tSNR,2))) +
+  labs(fill="Portion\nof tSNR",
+       y=parse(text="ɸ[tSNR]"),
+       x=parse(text="ɸ[MSA]")) +
+  see::theme_modern() +
+  theme(
+    axis.text=element_text(size=12),
+    axis.title=element_text(size=18),
+    axis.text.y=element_text(face="bold"))
+
+
+
+## break down of assignments
+p_msatsnr_hist <- with(all_vecs, rbind(data.frame(x=msa_1,meas='MSA'), data.frame(x=tsnr_1,meas='tSNR'))) |>
+  filter(!is.na(x), x!=0) |>
+  mutate(x=as.factor(x)) |>
+  ggplot() +
+  aes(x=x, fill=meas) +
+  geom_histogram(position='dodge',stat='count') +
+  labs(y="n Vox.", fill="", x="ɸ" )+
+  see::theme_modern() +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=18))
+
+
+p_mismatch_hist <-
+
+all_vecs |>
+  filter(msa_1!=0, tsnr_1!=0, !is.na(msa_1)) |>
+  #mutate(msa_1=sprintf("<span style='color: %s'>%s</span>",angle_colors_div[as.character(msa_1)],  msa_1)) |>
+ggplot() +
+  aes(x=as.factor(msa_1), group=tsnr_1, fill=as.factor(tsnr_1)) +
+  geom_histogram(stat='count', position='dodge') +
+  labs(y='n Vox.', fill=parse(text='ɸ[tSNR]'), x=parse(text="ɸ[MSA]")) +
+  scale_fill_manual(values=angle_colors_div) +
+  see::theme_modern() +
+  theme(
+    axis.text=element_text(size=12),
+    #axis.text.x=ggtext::element_markdown(angle=-90, hjust=0, vjust=0.5),
+    axis.text.x=element_text(angle=-90, hjust=0, vjust=0.5),
+    axis.title=element_text(size=18))
+
+p_msatsnr_hist_combo <- (p_msatsnr_hist  / p_mismatch_hist) +plot_layout(guides="collect", axis="collect")
+
+
+#+end_src
+
+#+RESULTS:
+[[file:Figures/orgmode/tsnr_msa_assignments_hist.png]]
+
+*** Combined
+
 #+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/msa_vs_tsnr.png :session :width 11.5 :height 10 :units in :res 300
-(p_brain_msa_1  | p_brain_tsnr_1) / ( (p_avsl+guides(fill="none")))# | mtbc_p)
+# (p_brain_msa_1  | p_brain_tsnr_1) / ( (p_avsl+guides(fill="none")))# | mtbc_p)
+(p_brain_msa_1  | p_brain_tsnr_1) / (( p_avsl + guides(fill="none")) | p_msatsnr_hist_combo)
 #+end_src
 
 #+RESULTS:
@@ -1396,7 +1483,7 @@ phi_to_int_col <- function(x) {
   return(x)
 }
 
-corplot_as_ggplot <- function(x) {
+corplot_as_ggplot <- function(x,text_size=10) {
   x <- phi_to_int_col(x)
   mat_l <- round(x,2);
   mat_r <- mat_l
@@ -1413,9 +1500,10 @@ corplot_as_ggplot <- function(x) {
     aes(y=Var1,x=Var2, fill=value, size=abs(value), label=value) +
     geom_point(shape=21,stroke=0) +
     scale_radius(guide="none", range=c(3,10), limits=c(0,1)) +
-    geom_text(aes(size=abs(value)/2,
+    geom_text(aes(size=NULL, #abs(value)/2,
                   color=factor(sign(value), levels=c(-1,1)),
                   alpha=abs(value)),
+              size=text_size,
               data=mat_text,
               vjust=0, hjust=0) +
     theme_minimal() +
@@ -1577,7 +1665,7 @@ print(p_tsnr_both)
 
 #+RESULTS:
 [[file:Figures/orgmode/maxangle/raw_tsnr.png]]
- 
+
  
  
  
@@ -1688,6 +1776,8 @@ epi2d2d_diag <- 1:dim(tsnr)[4] |>
 |  13 | 0.852 |
 |  20 | 0.851 |
 
+**** TODO include tihs somewhere?!
+
 *** tSNR and susceptibility
 
 For particiapnt 1, lets get min&max&range for tsnr&angle.
@@ -1771,6 +1861,8 @@ tsnr_2a5 <- read_and_crop(tsnr4d_2_fname)
 tsnr_2a5d <- mk_tbd_nii(tsnr_2a5)
 sub2_tbd <-  mk_tbd(tsnr_2a5d, all_vecs |> select(tsnr=tsnr_2,b0=b0_2)) |> mutate(sess='2')
 #+end_src
+
+#+RESULTS:
 
 *** just tSNR counts (TODO: move section)
 
@@ -1879,12 +1971,43 @@ delta_tsnr_brain + #slices(brain_pos) +
  #+RESULTS:
  [[file:Figures/orgmode/tsnr_B0/tsnr_diff_brain.png]]
 
-*** How often is MSA and tSNA picking the same?
-What angle is MSA off by? how big is the tSNR difference between picked and actual.
 
+
+**** combo plot with B0 threshold
 #+begin_src R :session
 
+p_msatsnr_hist_b0 <- with(all_vecs|>filter(abs(b0_1)>200),
+                          rbind(data.frame(x=msa_1,meas='MSA'),
+                                data.frame(x=tsnr_1,meas='tSNR'))) |>
+  filter(!is.na(x), x!=0) |>
+  mutate(x=as.factor(x)) |>
+  ggplot() +
+  aes(x=x, fill=meas) +
+  geom_histogram(position='dodge',stat='count') +
+  labs(y="n Voxs", fill="", x="ɸ" )+
+  theme_minimal() +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=18))
+
+p_mismatch_hist_b0 <-
+all_vecs |> filter(abs(b0_1)>200, msa_1!=0, tsnr_1!=0, !is.na(msa_1)) |>
+ggplot() +
+  aes(x=as.factor(msa_1), group=tsnr_1, fill=as.factor(tsnr_1)) +
+  geom_histogram(stat='count', position='dodge') +
+  labs(y='n Vox.', fill='ɸ[tSNR]', x=parse(text="ɸ[MSA]")) +
+  scale_fill_manual(values=angle_colors_div) +
+  theme_minimal() +
+  theme(
+    axis.text=element_text(size=12),
+    axis.text.x=element_text(angle=-90, hjust=0, vjust=0.5),
+    axis.title=element_text(size=18))
+
+(p_msatsnr_hist_b0  / p_mismatch_hist_b0) +plot_layout(guides="collect")
+
+(p_msatsnr_hist  / p_mismatch_hist) +plot_layout(guides="collect")
 #+end_src
+
+#+RESULTS:
 
 *** tSNR ~ MSA w/ restricted by tsnr range
 
@@ -1994,9 +2117,9 @@ p_tsnr_cor_dist | p_tsnr_cor_quant
 #+end_src
 
 #+RESULTS:
-: TRUE
 
-
+*** B0 distibrution and quantile threshold
+Also see ./Figures/b0_thres_animate.R
 
 #+begin_src R :session :results graphics file :file Figures/orgmode/tsnr_B0/scatter_angle_color.png :width 10 :height 6 :res 300 :units in
 
@@ -2004,7 +2127,8 @@ sub1_tbd |> group_by(roi) |> summarise(mean(minmaxdiff))
 
 lab_tsnr_range <- parse(text="tSNR[ɸ[max]]-tSNR[ɸ[min]]")
 
-ggplot(sub1_tbd|>filter(minmaxdiff>0))+
+# to pair with b0_signed_minmax
+b0_diff_by_angle <- ggplot(sub1_tbd|>filter(minmaxdiff>0))+
     aes(y=minmaxdiff, x=b0_1, color=tsnr_1) +#, alpha=b0_large) +
     geom_point() +
     geom_vline(data=data.frame(x=c(-1,1)*first(sub1_tbd$b0_large_thres)),
@@ -2015,9 +2139,15 @@ ggplot(sub1_tbd|>filter(minmaxdiff>0))+
     labs(x="ΔB0 (Hz)",
          y=lab_tsnr_range,
          color=parse(text="ɸ[max]")) +
-   see::theme_modern() +
+   #see::theme_modern() +
    labs(title="tSNR range and ɸ by susceptibility per voxel") +
-   theme(plot.title=element_text(hjust=0.5 ,size=20))
+    theme(
+          panel.grid=element_blank(),
+          plot.title=element_text(size=20, hjust=.5),
+          axis.text=element_text(size=15),
+          axis.text.x=element_text(angle=45,hjust=1,vjust=1),
+          axis.title=element_text(size=20))
+
  #+end_src
 
  #+RESULTS:
@@ -2040,7 +2170,8 @@ ggplot(sub1_tbd|>filter(minmaxdiff>0, b0_large, ))+
 
 #+begin_src R :session :results graphics file :file Figures/orgmode/tsnr_B0/scatter_magVdiff.png :width 10 :height 6 :res 300 :units in
 abslogtrans <- scales::new_transform("abslog", \(x) sign(x)*log10(abs(x)), \(x) sign(x)*10^abs(x))
-ggplot(sub1_tbd|>filter(minmaxdiff>0,b0_large))+
+
+b0_signed_minmax <- ggplot(sub1_tbd|>filter(minmaxdiff>0,b0_large))+
     aes(x=b0_1,
         y=minmaxdiff,
         #shape=as.factor(sign(angledif)),
@@ -2048,21 +2179,38 @@ ggplot(sub1_tbd|>filter(minmaxdiff>0,b0_large))+
     geom_point() +
     geom_smooth(color='red',method='lm', aes(shape=NULL)) +
     scale_color_gradient2(low='purple',mid='white', high='green') +
-    facet_grid(.~factor(sign(b0_1),levels=c(-1,1), labels=c("B0 < 0","B0 > 0")), scales='free') +
+    facet_grid(.~factor(sign(b0_1),levels=c(-1,1), labels=c("< 0"," > 0")), scales='free') +
     scale_y_continuous(limits=c(0,40))+
     #scale_shape_manual(values=c(21,16)) +
     #scale_x_continuous(trans=abslogtrans)+
     theme_bw() +
     labs(x="ΔB0 (Hz)",
          y=lab_tsnr_range,
-         color=parse(text="ɸ[max] - ɸ[min]"))
+         color=parse(text="ɸ[max] - ɸ[min]")) +
+  theme(panel.grid=element_blank(),
+        plot.title=element_text(size=20, hjust=.5),
+        axis.text=element_text(size=15),
+        axis.text.x=element_text(angle=45,hjust=1,vjust=1),
+        axis.title=element_text(size=20),
+        strip.text=element_text(size=20))
 #+end_src
 
 #+RESULTS:
 [[file:Figures/orgmode/tsnr_B0/scatter_magVdiff.png]]
 
-#+begin_src R :session
+
+*** Combine
+pair to output of ./Figures/b0_thres_animate.R output Figures/b0/brain_cor_qaunt.gif
+
+#+begin_src R :session :results graphics file :file Figures/orgmode/tsnr_B0/scatter_angle_color_and_MinMax.png :width 10 :height 6 :res 300 :units in
+(b0_diff_by_angle / b0_signed_minmax) + plot_layout(guides='collect',axis='collect')
 #+end_src
+
+#+RESULTS:
+[[file:Figures/orgmode/tsnr_B0/scatter_angle_color_and_MinMax.png]]
+
+
+*** Correlation
 
 #+RESULTS:
 : 0.288263739246724
@@ -2126,6 +2274,7 @@ as.data.frame() |> gather() |>separate(key,c('sess','m1','m2','set')) |>
 
 
 *** Sensitivity analysis of percentile
+**** TODO animate?
 #+begin_src R :session
 
 b0_caps_quant <- seq(0.4,1,by=.02)
@@ -2190,16 +2339,16 @@ p_b0_cor_quant <-  ggplot(msa_tsnr_by_b0_quant) +
            fill="Participant")
 
 p_tsnr_cor_dist  <-
-  rbind(data.frame(tdif=as.vector(tsnr_1a5d), sess='1'),
-      data.frame(tdif=as.vector(tsnr_2a5d), sess='2')) |>
+  rbind(data.frame(tdif=as.vector(b0_1_nifti), sess='1'),
+      data.frame(tdif=as.vector(b0_2_nifti), sess='2')) |>
   ggplot() +
   aes(x=tdif,fill=sess) +
   geom_density(alpha=.7) +
-  geom_vline(data=tcor_max, aes(xintercept=thres), color="gray") +
+  #geom_vline(data=tcor_max, aes(xintercept=thres), color="gray") +
   scale_fill_manual(values=sub_colors) +
-  coord_cartesian(xlim=c(0,50)) +
+  coord_cartesian(xlim=c(-500,500)) +
   see::theme_modern() +
-  labs(x="Δ tSNR", fill="Participant") +
+  labs(x="Δ B0", fill="Participant") +
   theme(legend.position=c(.8,1),
         legend.direction="horizontal",
         axis.title=element_text(size=15))
@@ -2484,19 +2633,20 @@ sapply(1:3, cor_at_mask)
 iso3d_cmp_cols <- c('msa_3d1','msa_1','msa_2','tsnr_3d1','tsnr_1','tsnr_2','b0_3d1','b0_1')
 iso3d_cmp_mat <- compare_cors_df[iso3d_cmp_cols,iso3d_cmp_cols]
 # relabel_datasets_axis moved into msa_funcs.R
+
 p_iso3d_cor <-
-  corplot_as_ggplot(iso3d_cmp_mat) +
+  corplot_as_ggplot(iso3d_cmp_mat, text_size=5) +
   # why do we need to switch these?
   scale_color_manual(values=c('blue','red'), guide="none") +
   scale_x_discrete(labels=relabel_datasets_axis) +
   scale_y_discrete(labels=relabel_datasets_axis) +
   ggforce::geom_mark_rect(aes(group=annote, label=NULL),
-                          color='black', size=1, fill=NULL, expand=.05, position=position_nudge(x=.23,y=.08),
+                          color='black', size=1, fill=NULL, expand=.05, position=position_nudge(x=.25,y=.08),
                           data=data.frame(Var2=c('msa_3d1','msa_3d1'),Var1=c('tsnr_3d1','msa_1'), value=NA, annote=c(1,2))) +
   ggtitle('Voxelwise argmax ɸ correlations') +
   theme(plot.title=element_text(hjust=.5,size=20),
-        axis.text.x=element_text(hjust=0),
-        axis.text.y=element_text(hjust=.5))
+        axis.text.x=element_text(hjust=0,size=12),
+        axis.text.y=element_text(hjust=.5,size=12))
 print(p_iso3d_cor)
 #+end_src
 
@@ -2563,15 +2713,22 @@ p_iso_roicnt <- ggplot(iso3d_cnt) +
   scale_color_manual(values=c("#ffffff00","#000000"), guide="none") +
   theme_bw() +
   theme(panel.grid=element_blank()) +
-  labs(x='ɸ', y='% ROI  in argmax(ɸ)', color='Measure')
+  labs(x='ɸ', y='% ROI  in argmax(ɸ)', color='Measure') +
+  theme(panel.grid=element_blank(),
+        plot.title=element_text(size=20, hjust=.5),
+        axis.text=element_text(size=15),
+        axis.text.x=element_text(angle=90,hjust=0,vjust=.5),
+        axis.title=element_text(size=20),
+        strip.text=element_text(size=20))
+
 print(p_iso_roicnt)
 #+end_src
 
 #+RESULTS:
 [[file:Figures/orgmode/maxangle/3diso_msa_tsnr_roi.png]]
 
-*** Brain
-
+*** MSA tSNR argmax on the Brain
+combine MSA tSNR and tSNR 2D
 #+begin_src R :session :results graphics file :file Figures/orgmode/maxangle/3diso_msa_tsnr_roi_brain.png :session :width 800
 # roi_label_color and roi_colors; roi_3d, t1_crop; msa_roi_only, tsnr_roi_only from above
 msa_roi_only3d1 <- mt_nii$msa_3d1
@@ -2617,12 +2774,18 @@ p_brain_tsnr_3d1 <- ggbrain(bg_color="white", text="black") +
   geom_region_label_repel(image="roi",label_column="label",color='black', size=3, force=1.5,force_pull=1.5) +
   render() +
   ggtitle("tSNR 3D") + theme(plot.title=element_text(hjust=-1, color="#00BFC4"))
+
  # + labs(title="tSNR")
 
 
 p_brain_msa_tsnr_3d1 <- (p_brain_msa_3d1  / p_brain_tsnr_3d1 / (p_brain_tsnr_1 +  ggtitle("tSNR 2D") + theme(plot.title=element_text(color="black"))))
 print(p_brain_msa_tsnr_3d1)
 #+end_src
+
+#+RESULTS:
+[[file:Figures/orgmode/maxangle/3diso_msa_tsnr_roi_brain.png]]
+
+*** Where is there mismatch?
 
 *** Combined
 
@@ -2657,6 +2820,12 @@ jq '[.IntendedFor, (.SliceTiming|length)]|@tsv' -M  Data/bids-3depi/sub-1/fmap/s
 * Limitations
  * motion: Hutton 2002
 * Log                                                            :noexport:
+** 2026-05-09
+ * add Figures/FoV.png Figures/distortion_by_angle.gif
+ * replace Figures/tSNR_angle.gif
+ * replace MSA [[file:Figures/orgmode/maxangle/msa_vs_tsnr.png]]
+    - maybe regenerate after installing ggtext
+
 ** 2026-05-04
 *** initial figures implemented
 *** TODO results
