@@ -658,7 +658,6 @@ Per whole brain voxelwise correations at each angle for each measure (a10/n40p20
     * decreasing (0 to more negative) compared to a10 for sub-1
     * increasing (0 to more positive) compared to tsnr for sub-2
 
-**TODO: show with ROIs instead of whole brain?**
 
 #+begin_src R :session :results graphics file :file Figures/orgmode/rest_a10_correlatons.png
 
@@ -718,7 +717,7 @@ from [[file:Olfactory/01_roistat_tsnr.bash]] and [[file:Olfactory/02_tsnr_model.
 #+HTML: <source src="tSNR_angle.mp4" type="video/mp4">
 [[file:tSNR_angle.mp4]]
 
-** TODO any ROI where tSNR is worse at +20?
+** any ROI where tSNR is worse at +20? (V4)
 
 * Max angle tSNR vs a10 vs ΔB0
 From [[file:AngleCompare/03a_tsnr_cmp.R]].
@@ -831,7 +830,7 @@ title("Voxelwise correlation argmax MSA(ɸ), tSNR, GRE ΔB0")
 
 ** Within ROI
 
-** TODO B0 against max tsnr all voxels
+** B0 against max tsnr all voxels
 
 #+begin_src R :session :colnames yes
 roi_3d <- readNifti('./Olfactory/atlas-AonPirFTTubV4_res-func.nii.gz')
@@ -866,7 +865,7 @@ smoothed_mni_flist <- list(
 smoothed_nii <- lapply(smoothed_mni_flist, \(f) readNifti(f)|>round())
 par(mfrow=c(1,2))
 hist(smoothed_nii$msa_1[roi_3d == 1], main="AON msa")
-# CRAZY -- bad tsnr. weird steps. no mean in bandpassed
+# CANT USE -- invalid tsnr: no mean in bandpassed
 hist(smoothed_nii$tsnr_1[roi_3d == 1], main="AON tsnr")
 #+end_src
 
@@ -2836,17 +2835,17 @@ jq '[.IntendedFor, (.SliceTiming|length)]|@tsv' -M  Data/bids-3depi/sub-1/fmap/s
 *** initial figures implemented
 *** TODO results
 **** sub-1 vs sub-2 tSNR vs MSA
-*** TODO regenerate intro figure
+*** DONE regenerate intro figure
 **** add ROIs
 **** citation/justification for AON
-*** TODO regenerate animation
+*** DONE regenerate animation
 **** DONE [#A] higher quality dpi
 **** DONE [#A] add parameter table
 **** DONE remove wm/gm/csf
 **** DONE remove 3diso
 *** TODO confirm parameter table
 *** TODO MSA angle key to other figures
-*** TODO slice planes
+*** DONE slice plane
 **** brain backgrounds
 **** MSA line
 *** TODO [#C] add MSA<->MSA correlation for 3D GRE

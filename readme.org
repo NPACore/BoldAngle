@@ -1,0 +1,8 @@
+* MSA
+
+** Code
+Emacs org-mode file [[file:figures.org]] contains loosely organized code experiments. [[file:Makefile]] has recipes for figures.
+
+** Data
+
+MR images source data in this repo with Git Large File Storage. (`git lfs install; git lfs pull`)

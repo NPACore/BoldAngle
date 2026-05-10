@@ -195,7 +195,11 @@ plot_at_angle <- function(p,i) {
       geom_vline(data=data.frame(angle=this_angle,
                                  roi=NA,input=c("Rest tSNR","MSA Intensity")),
                  aes(xintercept=angle),
-                 color='yellow')
+                 color='yellow') +
+      theme(legend.text=element_text(size=14),
+            legend.title=element_text(size=16)) +
+      # remove 'a' from legend ROI color
+      guides(colour = guide_legend(override.aes = aes(label ="")))
       # + labs(title= glue::glue("tSNR at acquisition angle {this_angle}"))
   return(p_angle)
 }
@@ -234,8 +238,10 @@ angle_frames <- function(i, prefix="/tmp/XXXX_") {
    #                          nrow=2)
    a_plots <- (a10_at_angle(i) | tsnr_at_angle(i)) / (plot_at_angle(p,i) +labs(title=""))
 
-   # 450 x 570 ~ 1.3xwidth=height
-   ggsave(file=fname, a_plots, height=10, width=8, dpi=300)
+   # 450 x 530 on screen. vs 10x8@300 is 2400x3000
+   #ggsave(file=fname, a_plots, height=10, width=8, dpi=300)
+   #ggsave(file=fname, a_plots, height=10, width=8, dpi=150)
+   ggsave(file=fname, a_plots, height=10, width=8, dpi=96)
    return(fname)
 }
 
