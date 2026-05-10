@@ -26,12 +26,29 @@ names(angle_colors_div) <- msa_angles
 sub_colors <- c("#F781BF","#FF7F00","#983EA3")
 names(sub_colors) <- c("1","2","3d1")
 
+acq_colors <- list(msa="#F8766D", tsnr="#00BFC4")
 
+# stylize x/y for cor mat like below, but with markdown for color too
+relabel_datasets_axis_md <- function(x) {
+  color <- case_when(
+      grepl('tsnr',x)&grepl('msa',x) ~ NA,
+      grepl('msa', x) ~ acq_colors$msa,
+      grepl('tsnr',x) ~ acq_colors$tsnr,
+      T ~ NA)
+  x <- ifelse(is.na(color),
+              x,
+              gsub('^',paste0("<span style='color:",color, "'>"), x) |>
+              gsub('$','</span>', x=_))
+  gsub('(b|snr|msa)','\\U\\1',x, perl=T)|>
+          gsub('(.*_3d1)','<b>\\1</b>',x=_) |>
+          gsub('_([^<\\)]*)', '_\\1', x=_)
+}
 # stylize x/y ticks add subscript and bold: msa_1 to MSA["1"]; MSA_3d1 bold(MSA_["3d1"])
 relabel_datasets_axis <- function(x)
   parse(text=gsub('(b|snr|msa)','\\U\\1',x, perl=T)|>
           gsub('(.*_3d1)','bold(\\1)',x=_) |>
           gsub('_([^\\)]*)', '["\\1"]', x=_))
+
 
 # 3D nifti file into vector. useful for between-volume correlation
 niifile_vec <- function(img, mask=NULL, na.zero=TRUE){
