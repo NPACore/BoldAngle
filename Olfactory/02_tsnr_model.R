@@ -1,5 +1,6 @@
 #!/usr/bin/env Rscript
 pacman::p_load(dplyr, tidyr, ggplot2, ggbrain, RNifti)
+source('msa_funcs.R')  # cmd_convert_base
 angle_vals <- round(read.table('FmapCorrect/angle.txt')$V1, 0)
 # c(-40, -33, -27, -20, -13, -7, 0, 7, 13, 20)
 # 3depi subset is:
@@ -116,8 +117,16 @@ p <-p_data |>
     #                          color='black',
     #                          segment.size=.2,
     #                          aes(label=glue::glue("{subj} {roi} {round(tsnr,1)} @ {angle}"))) +
-    labs(title="Relative Mangitude and tSNR at acquistion angles", y="Session Norm value", x="ɸ", shape="Session", color="Region") +
-    theme(panel.grid = element_blank(), title=element_text(size=15))
+    labs(title="Relative Mangitude and tSNR at acquistion angles",
+         y="Session Norm. Value",
+         x="ɸ", shape="Session", color="Region") +
+    theme(panel.grid = element_blank(),
+        axis.title=element_text(size=20),
+        plot.title=element_text(size=20, hjust=.5),
+        axis.text=element_text(size=15),
+        axis.text.x=element_text(angle=90,hjust=0,vjust=.5),
+        strip.text=element_text(size=20),
+        legend.position = "top")
 p
 
 ggsave(p, file='atlas-AonPirFTTub_lm.png', width=5, height=3)
@@ -226,13 +235,16 @@ angle_frames <- function(i, prefix="/tmp/XXXX_") {
    a_plots <- (a10_at_angle(i) | tsnr_at_angle(i)) / (plot_at_angle(p,i) +labs(title=""))
 
    # 450 x 570 ~ 1.3xwidth=height
-   ggsave(fname, a_plots, height=10, width=8, dpi=300)
+   ggsave(file=fname, a_plots, height=10, width=8, dpi=300)
    return(fname)
 }
 
 input_images<-lapply(seq_along(angle_vals), angle_frames)
-#gifski::gifski(unlist(input_images), gif_file="tSNR_angle.gif")
-#system("ffmpeg -y -f image2 -r 2 -i /tmp/XXXX_%02d.png -vcodec libx264 -crf 10 tSNR_angle_10.mp4")
-system("ffmpeg -y -f image2 -r 2 -i /tmp/XXXX_%02d.png -vcodec libx264 -crf 10 -pix_fmt yuv420p tSNR_angle_crf-10_pix-yuv420p.mp4")
+#system("ffmpeg -y -f image2 -r 2 -i /tmp/XXXX_%02d.png -vcodec libx264 -crf 10 -pix_fmt yuv420p tSNR_angle_crf-10_pix-yuv420p.mp4")
+
 # 20260509 as gif instead
-system("bash -c \"convert $(ls /tmp/XXXX_*.png| sed 's/^/-delay 70 /') Figures/tSNR_angle.gif\"")
+#system("bash -c \"convert $(ls /tmp/XXXX_*.png| sed 's/^/-delay 70 /') Figures/tSNR_angle.gif\"")
+system(paste(sep=" ",collapse=" ",
+             cmd_convert_base,
+             paste(sep=" ", collapse=" ", '-delay 70', input_images),
+             'Figures/tSNR_angle.gif'))

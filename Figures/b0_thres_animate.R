@@ -197,7 +197,8 @@ p<-(plot_b0_brain(thres_oob(b0_1_nifti_p, v, 400)) + render()) /
     p_b0_cor_quant + geom_vline(xintercept=q, color=ifelse(q==.9,'red','yellow'))
   ggsave(p, file=outname, width=6.5,height=6.5,dpi=300)
 })
-b0_gif_cmd <- paste0(collapse='', 'convert -loop 0', paste0(' -delay 70 ',idv_b0_pngs), ' Figures/b0/brain_cor_qaunt.gif')
+
+b0_gif_cmd <- paste0(collapse='', cmd_convert_base, paste0(collapse=' ', ' -delay 70 ',idv_b0_pngs), ' Figures/b0/brain_cor_qaunt.gif')
 system(b0_gif_cmd)
 
 

@@ -166,4 +166,4 @@ ggsave(p_sdcn40_1, file="Figures/distortion_n40.png", width=5.7,height=3.2, dpi=
 p_sdcp20_1 <- plot_nii(ud_p20) + patchwork::plot_annotation(title="ɸ = 20")
 ggsave(p_sdcp20_1,file="Figures/distortion_p20.png", width=5.7,height=3.2, dpi=300)
 
-system('convert -delay 70  Figures/distortion_p20.png -delay 70 Figures/distortion_n40.png -loop 0 Figures/distortion_by_angle.gif')
+system(cmd_convert_base, ' -delay 70  Figures/distortion_p20.png -delay 70 Figures/distortion_n40.png -loop 0 Figures/distortion_by_angle.gif')

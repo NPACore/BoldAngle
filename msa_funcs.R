@@ -28,6 +28,10 @@ names(sub_colors) <- c("1","2","3d1")
 
 acq_colors <- list(msa="#F8766D", tsnr="#00BFC4")
 
+# command & parameters to try to get to a high quality gif image
+# used by Figures/b0_thres_animate.R Figures/montage_nifit.R Olfactory/02_tsnr_model.R
+cmd_convert_base <- 'convert -background white -alpha remove -layers OptimizePlus -density 300 -quality 100 -loop 0'
+
 # stylize x/y for cor mat like below, but with markdown for color too
 relabel_datasets_axis_md <- function(x) {
   color <- case_when(
