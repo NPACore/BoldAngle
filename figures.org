@@ -98,6 +98,12 @@ sSliceArray.ucMode	 = 	4
 sSliceArray.ucMode	 = 	4
 #+end_example
 
+#+begin_src bash
+3dinfo -n4 FmapCorrect/wf/human-largefov/sub-1/sub-1_acq-largefov_magnitude1.nii.gz 
+#+end_src
+
+#+RESULTS:
+: 104     104     100     1
 
 *** SpinEcho
 
@@ -1728,18 +1734,18 @@ Direct comparison of signal to noise for each ɸ to ɸ
 tsnr_a5_colwise <- 1:dim(tsnr_a10)[4] |>
     lapply( \(i) as.vector(tsnr_a10[,,,i]))|>
     do.call(cbind,args=_)
-colnames(tsnr_a10_colwise) <- paste0(msa_angles5,'_[2D]')
+colnames(tsnr_a10_colwise) <- paste0(msa_angles5,'_2D')
 
 
 epi3d2d_cor <- 1:dim(tsnr)[4] |>
     sapply( \(i) cor(as.vector(tsnr[,,,i]), tsnr_a5_colwise,
                  use='pairwise.complete.obs'))
-colnames(epi3d2d_cor) <- paste0(msa_angles5,'_[2D]')
-rownames(epi3d2d_cor) <- paste0(msa_angles5,'_[3D]')
+colnames(epi3d2d_cor) <- paste0(msa_angles5,'_2D')
+rownames(epi3d2d_cor) <- paste0(msa_angles5,'_3D')
 
 # confirm order
 epi3d2d_cor_one <- cor(as.vector(tsnr[,,,1]), tsnr_a5_colwise, use='pairwise.complete.obs')
-stopifnot(all(epi3d2d_cor_one == epi3d2d_cor[,"-40_[2D]"]))
+stopifnot(all(epi3d2d_cor_one == epi3d2d_cor[,"-40_2D"]))
 
 epi3d2d_cor |> round(3)
 #+end_src
@@ -1752,6 +1758,36 @@ epi3d2d_cor |> round(3)
 | -13_[3D] |    0.805 |    0.778 |    0.802 |   0.833 |   0.828 |
 | 13_[3D]  |    0.809 |    0.779 |    0.805 |   0.852 |   0.848 |
 | 20_[3D]  |    0.808 |     0.78 |    0.803 |   0.856 |   0.851 |
+
+** p_epi3d2d_cor: Plot 3depi vs 2depi like other correlation matrices
+
+#+begin_src R :session :results graphics file :file Figures/orgmode/tsnr_3depi_2depi_full_corrmat.png :width 7 :height 6
+ axis_colors_msa5 <- angle_colors_div[msa_angles %in% msa_angles5]
+ p_epi3d2d_cor <-
+  epi3d2d_cor|> round(2) |> reshape2::melt() |>
+  ggplot()+
+    aes(y=Var1,x=Var2, color=value, label=value) +
+    #geom_point(shape=21,stroke=0) +
+    #scale_radius(guide="none", range=c(3,10), limits=c(0,1)) +
+    geom_text(size=10)+
+    theme_minimal() +
+    scale_alpha_continuous(range=c(.5,1), guide="none") +
+    scale_color_distiller(palette='RdBu', limits=c(-1,1))+
+    scale_x_discrete(labels=relabel_datasets_axis) +
+    scale_y_discrete(labels=relabel_datasets_axis) +
+    theme(panel.grid=element_blank(),
+        plot.title=element_text(hjust=.5,size=20),
+        axis.text.x=element_text(size=15, hjust=0, vjust=1, angle=-45,
+                                 color=axis_colors_msa5),
+        axis.text.y=element_text(size=15, hjust=0, vjust=1 ,angle=45,
+                                 color=axis_colors_msa5))+
+    labs(fill="r", y="",x="", title="Voxelwise tSNR 3D~2D")
+ print(p_epi3d2d_cor)
+#+end_src
+
+#+RESULTS:
+[[file:Figures/orgmode/tsnr_3depi_2depi_full_corrmat.png]]
+
 
 *** maybe only care about the diagonal
 :PROPERTIES:
@@ -1782,7 +1818,7 @@ epi2d2d_diag <- 1:dim(tsnr)[4] |>
 
 **** TODO include tihs somewhere?!
 
-*** tSNR and susceptibility
+** tSNR and susceptibility
 
 For particiapnt 1, lets get min&max&range for tsnr&angle.
 ~tsnr_1a5d_oob~ Later used for Figures/orgmode/tsnr_B0/tsnr_diff_brain.png
@@ -2649,8 +2685,8 @@ p_iso3d_cor <-
                           data=data.frame(Var2=c('msa_3d1','msa_3d1'),Var1=c('tsnr_3d1','msa_1'), value=NA, annote=c(1,2))) +
   ggtitle('Voxelwise argmax ɸ correlations') +
   theme(plot.title=element_text(hjust=.5,size=20),
-        axis.text.x=element_text(hjust=0,size=12),
-        axis.text.y=element_text(hjust=.5,size=12))
+        axis.text.x=element_text(hjust=0,size=15),
+        axis.text.y=element_text(hjust=.5,size=15))
 print(p_iso3d_cor)
 #+end_src
 
@@ -2790,15 +2826,32 @@ print(p_brain_msa_tsnr_3d1)
 #+RESULTS:
 [[file:Figures/orgmode/maxangle/3diso_msa_tsnr_roi_brain.png]]
 
-*** Where is there mismatch?
+*** TODO Where is there mismatch?
+HERE HERE
+see delta_tsnr_brain
+MSA - tSNR ?
+low delta B0  line plot?
 
 *** Combined
+2d vs 3d tSNR brain, roi, and cormap ([[*p_epi3d2d_cor]])
 
-#+begin_src R :session :results graphics file :file Figures/orgmode/3diso_MSAs_vs_tsnr.png :session :width 12.5 :height 9.5 :units in :res 300
+#+begin_src R :session :results graphics file :file Figures/orgmode/3diso_MSAs_vs_tsnr.png :session :width 12 :height 8 :res 300
 
 pbt_1 <- p_brain_tsnr_1 +  ggtitle("tSNR 2D") + theme(plot.title=element_text(color="black"))
 
-(p_brain_msa_3d1  / p_brain_tsnr_3d1 /pbt_1 ) | ( (p_iso_roicnt+guides(fill="none")) / (p_iso3d_cor + theme(plot.title=element_text(hjust=.5,size=15)) ))
+
+# large cormap of everything
+# (p_brain_msa_3d1  / p_brain_tsnr_3d1 /pbt_1 ) | ( (p_iso_roicnt+guides(fill="none")) / (p_iso3d_cor + theme(plot.title=element_text(hjust=.5,size=15)) ))
+
+# 2d to 3d epi
+p_2d_v_3d_grid <-
+    (p_brain_msa_3d1  / p_brain_tsnr_3d1 /pbt_1 ) |
+    ( (p_iso_roicnt+guides(fill="none")) /
+      (p_epi3d2d_cor +
+       guides(color="none") +
+       theme(plot.title=element_text(hjust=.5,size=15),
+             axis.text.x = element_text(size=10),
+             axis.text.y = element_text(size=10)) ))
 #+end_src
 
 #+RESULTS:
